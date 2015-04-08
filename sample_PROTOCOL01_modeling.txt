@@ -1,0 +1,53 @@
+=====================================================================
+                           PROTOCOL02 
+=====================================================================
+GOAL   : Create active state homology model of [z] 
+INPUTS : Active [x], inactive [y], sequence of [z] 
+OUTPUT : Homology model of [z] active state
+PROJECT: [z]
+PATH   : /home/robin/Work/Dror_rotation/[z]/active_state_model/setup
+DATE   : 23 March 15
+=====================================================================
+
+1. Built homology model of [z] based on the active state [x] structure [x].pdb,
+   and the inactive [y] [y].pdb, by loading those structures into Maestro
+   and doing a structure alignment.
+
+2. Opened the multiple sequence viewer and the [z] fasta. Did an alignment
+   automatically, then refined as follows:
+   
+   - Moved residues around across the 3rd loop gap, so the gap is correctly placed
+     based on residue number (there is a big skip in numbering where the gap should
+     be)
+   - Checked the alignment of the following residues (numbering from [x]) is correct
+     between all three sequences: TRP158, PRO211, PRO288, PRO323, PRO332.
+
+   I had to move around a few gaps to get the TRP158 in the right position and do some
+   minor adjustments of the [x] sequence for the PRO211, then everything else seemed
+   to be in the right place.
+
+3. Constructed a composite model. Selected all of the model to come from [y] inactive,
+   except for TM5,6,7,8 regions. This translates to the following selections from the
+   [y] sequence:
+
+   - FFTNQAY near 3rd loop gap through start of third loop
+   - ending with RASK before SRI, but actually just through the end
+   - from CLKEH (more like LKEH at end of third loop) through the end
+
+4. Constructed the model with all the boxes checked, with filling in insertions of up
+   to 5 residues to handle some minor insertions.
+
+5. Checked over the model in Maestro. The most important thing is that the loop movement
+   is preserved of TM7/8 (i think thats the right index but its obvs from visualizing).
+
+6. Ran the protein prep wizard as usual, aligning to the [y] opm structure with propka at ph 7.0
+   Saved file: 02WT_active_prepped.mae
+
+7. Dabbled with a membrane buffer of 30 so the system's a decent size,
+   and a decreased lipid dist (from 2.0 default) so the lipids are closer:
+    dabble -i 02WT_active_prepped.mae -o 02WT_active_dabbled.prmtop -m 30.0 --lipid-dist 1.5 | tee 02dabble.out
+
+8. Outputs are 02WT_active_dabbled.inpcrd and 02WT_active_dabbled.prmtop
+
+9. Repeated for A135F, A135P, A135T, Y209S mutants, using WT alignment as a guide. This took a lot
+   less time since Maestro uses the WT alignment as a basis for loading in the other fastas.

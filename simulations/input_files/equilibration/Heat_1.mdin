@@ -1,0 +1,37 @@
+Lipid 128 heating 100K
+ &cntrl
+  imin=0,         ! Molecular dynamics
+  ntx=1,          ! Positions read formatted with no initial velocities
+  irest=0,        ! No restart
+  ntc=2,          ! SHAKE on for bonds with hydrogen
+  WATNAM='TIP3',  
+  OWTNM='OH2',
+  ntf=2,          ! No force evaluation for bonds with hydrogen
+  tol=0.0000001,  ! SHAKE tolerance
+  nstlim=5000,    ! Number of MD steps
+  ntt=3,          ! Langevin dynamics
+  gamma_ln=1.0,   ! Collision frequency for Langevin dynamics
+  ntr=1,          ! Restrain atoms using a harmonic potential
+                  ! (See the GROUP input below)
+  ig=-1,          ! Random seed for Langevin dynamics
+  ntpr=100,
+  ntwr=10000,
+  ntwx=1000,      ! Write to trajectory file every ntwx steps
+  dt=0.0025,      ! Timestep (ps)
+  nmropt=1,       ! NMR restraints will be read (See TEMP0 control below)
+  ntb=1,
+  ntp=0,
+  cut=9.0,
+  ioutfm=1,       ! Write a binary (netcdf) trajectory
+  ntxo=1,         ! Write binary restart files
+  restraintmask	= ':POPC', restraint_wt=10.0, !hold the lipid fixed
+  restraintmask = '!(:POPC | :TIP3 | :SOD | :CLA)', restraint_wt=10.0, !hold the protein fixed 
+ /
+ &wt 
+  type='TEMP0',   ! Varies the target temperature TEMP0
+  istep1=0,       ! Initial step
+  istep2=5000,    ! Final step
+  value1=0.0,     ! Initial temp0 (K)
+  value2=100.0 /  ! final temp0 (K)
+ &wt type='END' / ! End of varying conditions
+
