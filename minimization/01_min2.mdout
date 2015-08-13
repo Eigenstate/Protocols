@@ -1,0 +1,49 @@
+
+          -------------------------------------------------------
+          Amber 14 SANDER                              2014
+          -------------------------------------------------------
+
+| PMEMD implementation of SANDER, Release 14
+
+| Run on 06/22/2015 at 15:34:00
+
+|   Executable path: pmemd
+| Working directory: /share/PI/rondror/MD_simulations/amber/robin_D2_dopamine/input_files/minimization
+|          Hostname: gpu-15-1
+
+  [-O]verwriting output
+
+File Assignments:
+|   MDIN: /share/PI/rondror/MD_simulations/amber/robin_D2_dopamine/input_files/m
+|  MDOUT: 01_min2.mdout                                                         
+| INPCRD: 01_min1.rst                                                           
+|   PARM:                                                                       
+| RESTRT: 01_min2.rst                                                           
+|   REFC: 01_min1.rst                                                           
+|  MDVEL: mdvel                                                                 
+|   MDEN: mden                                                                  
+|  MDCRD: mdcrd                                                                 
+| MDINFO: mdinfo                                                                
+|  MDFRC: mdfrc                                                                 
+
+ 
+ Here is the input file:
+ 
+Minimization with slightly less restraints                                     
+&cntrl                                                                         
+  imin=1,                                                                      
+  maxcyc=1000, ! previous 10k                                                  
+  ncyc=500, ! previous 5k                                                      
+  ntb=1,ntp=0,                                                                 
+  ntf=1,ntc=1,                                                                 
+  ntpr=50, ntwr=200, ! previous 2k                                             
+  cut=10.0,                                                                    
+  ntr=1,                                                                       
+  restraintmask = '!(:POPC | :TIP3 | :SOD | :CLA)', restraint_wt=5.0           
+  restraintmask = ':POPC', restraint_wt=5.0                                    
+/                                                                              
+
+
+ 
+
+  Unit    9 Error on OPEN: 01_min1.rst                                                                                                                                                                                                                                                     

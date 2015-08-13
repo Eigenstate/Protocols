@@ -1,0 +1,33 @@
+High restraint equilibration 310K 2ns
+ &cntrl
+  imin=0,
+  ntx=1,          ! Positions read formatted with no initial velocities
+  irest=0,        ! No restart
+  ntc=2,
+  ntf=2,
+  WATNAM='TIP3',                   
+  OWTNM='OH2',
+  tol=0.0000001,
+  nstlim=800000,
+  ntt=3,
+  gamma_ln=1.0,
+  ntr=1,
+  temp0=310.0,
+  ntpr=5000,
+  ntwr=5000,
+  ntwx=10000,
+  dt=0.0025,      
+  ig=-1, 
+  ntb=2,
+  ntp=3,
+  csurften=3,
+  gamma_ten=0.0,   ! Apply no surface tension
+  cut=9.0,
+  ioutfm=1,
+  ntxo=1,
+  restraintmask = '!(:POPC | :TIP3 | :SOD | :CLA)', restraint_wt=5.0, !hold protein fixed
+ /
+ /
+ &ewald
+  skinnb=5, ! Increase skinnb to avoid skinnb errors
+ /

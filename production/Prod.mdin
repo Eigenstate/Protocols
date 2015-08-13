@@ -1,0 +1,26 @@
+Lipid production 310K 100ns
+ &cntrl
+  imin=0,          ! Molecular dynamics
+  ntx=5,           ! Positions and velocities read formatted
+  irest=1,         ! Restart calculation
+  ntc=2,           ! SHAKE on for bonds with hydrogen
+  ntf=2,           ! No force evaluation for bonds with hydrogen
+  WATNAM='TIP3',                   
+  OWTNM='OH2',
+  tol=0.0000001,   ! SHAKE tolerance
+  nstlim=40000000, ! Number of MD steps
+  ntt=3,           ! Langevin dynamics
+  gamma_ln=1.0,    ! Collision frequency for Langevin dyn.
+  temp0=310.0,     ! Simulation temperature (K)
+  ntpr=25000,      ! Print to mdout every ntpr steps
+  ntwr=50000,      ! Write a restart file every ntwr steps
+  ntwx=50000,      ! Write to trajectory file every ntwc steps
+  dt=0.0025,       ! Timestep (ps) 2.5fs timestep
+  ig=-1,           ! Random seed for Langevin dynamics
+  ntb=2,           ! Constant pressure periodic boundary conditions
+  ntp=2,           ! Anisotropic pressure coupling
+  cut=9.0,         ! Nonbonded cutoff (Angstroms)
+  ioutfm=1,        ! Write binary NetCDF trajectory
+  ntxo=2,          ! Write binary restart file
+  barostat=2,      ! Use Monte Carlo barostat (Amber 14)
+ /

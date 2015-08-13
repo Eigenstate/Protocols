@@ -1,0 +1,13 @@
+Minimization holding protein constant with large weighting
+&cntrl
+  imin=1,
+  maxcyc=1000, ! previous was 10k
+  ncyc=500,  ! previous was 5k
+  ntb=1,ntp=0,
+  ntf=1,ntc=1,
+  ntpr=50, ntwr=200, ! previous 2k
+  cut=10.0,
+  ntr=1,
+  restraintmask = '!(:POPC | :TIP3 | :SOD | :CLA)', restraint_wt=50.0
+  restraintmask = ':POPC', restraint_wt=10.0
+/

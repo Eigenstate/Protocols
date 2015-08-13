@@ -1,0 +1,15 @@
+Mon Jun 22 15:33:59 PDT 2015
+First minimization...
+
+  Unit    9 Error on OPEN:                                                                                                                                                                                                                                                                 
+PMEMD Terminated Abnormally!
+Second minimization...
+
+  Unit    9 Error on OPEN: 01_min1.rst                                                                                                                                                                                                                                                     
+PMEMD Terminated Abnormally!
+Third minimization...
+
+  Unit    9 Error on OPEN: 01_min2.rst                                                                                                                                                                                                                                                     
+PMEMD Terminated Abnormally!
+Done
+Mon Jun 22 15:34:00 PDT 2015

@@ -1,0 +1,110 @@
+#!/bin/bash
+#SBATCH --time=08:00:00
+#SBATCH --partition=(PART)
+#SBATCH --qos=(QOS) --gres=gpu:2
+#SBATCH --ntasks-per-socket=2 --tasks=2
+#SBATCH --output=(REV)slurm.out --open-mode=append
+#SBATCH --mail-user=robin@robinbetz.com --mail-type=ALL
+#SBATCH --job-name=(NAM)_eq
+# If you want to run after a minimization is done, uncomment this
+# and put in the job number at the end.
+#SBATCH --dependency=afterok:(MINNUM)
+#
+#=====================================================================
+#                            PROTOCOL(REV)
+#=====================================================================
+# GOAL   : Equilibrate the system at 310K after heating
+#        
+# INPUTS :  
+# OUTPUT : Equilibrated system 
+# PROJECT: (NAM)
+# PATH   : DIR
+# DATE   : NOW
+#=====================================================================
+#
+
+# Protocol revision number
+rev=(REV)
+
+# Output from minimization, should be prmtop and min.rst or something
+prmtop="(PRMTOP)"
+rst="(RST)"
+
+# Directory with input files
+inpdir="(INP)"
+
+# Exit if any command fails
+set -e
+
+# Load necessary modules
+date
+#module load amber/14-cuda
+module load cuda/7.0
+module load mpich/3.1.4/gcc
+export AMBERHOME=$PI_HOME/software/amber_dev
+
+# Check for P2P GPUs. Fail if not
+p2p=$((P2P))
+if [[ "$p2p" == *"NO"* ]]; then
+  echo "ERROR! Didn't get P2P GPUs!"
+  echo "HOSTNAME             = $HOSTNAME"
+  echo "CUDA VISIBLE DEVICES = $CUDA_VISIBLE_DEVICES"
+  exit 1
+fi
+
+# Heat from 0 to 100K with restraints 10 on the lipid and protein for 12.5ps
+# in the NVT ensemble, 2.5fs timsetep
+echo "NVT heating... of $SLURM_JOB_NAME"
+mpirun -np 2 --bind-to socket $AMBERHOME/bin/pmemd.cuda.MPI -O -i "$inpdir/02Heat_1.mdin" \
+       -o "Heat_1.mdout" -p "$prmtop" -c "$rst" \
+       -r "Heat_1.rst" -ref "$rst" -x "Heat_1.nc"
+
+# Heat again from 100 to 310K with restraints 10 on the lipid and protein for
+# 125ps in NTP ensemble, 2.5fs timestep
+echo "NTP heating...of $SLURM_JOB_NAME"
+mpirun -np 2 --bind-to socket $AMBERHOME/bin/pmemd.cuda.MPI -O -i "$inpdir/02Heat_2.mdin" \
+       -o "Heat_2.mdout" -p "$prmtop" -c "Heat_1.rst" \
+       -r "Heat_2.rst" -ref "Heat_1.rst" -x "Heat_2.nc"
+
+# Equilibrate with restraint 5 on protein only for 2ns
+# in the NPT ensemble, 2.5fs timestep
+echo "Restraint 5 equilibration...of $SLURM_JOB_NAME"
+mpirun -np 2 --bind-to socket $AMBERHOME/bin/pmemd.cuda.MPI -O -i "$inpdir/02Eq_1.mdin" \
+       -o "Eq_1.mdout" -p "$prmtop" -c "Heat_2.rst" \
+       -r "Eq_1.rst" -ref "Heat_2.rst" -x "Eq_1.nc"
+
+# Decrease restraint on protein to 4 for 2ns
+# in the NPT ensemble, 2.5fs timestep
+echo "Restraint 4 equilibration...of $SLURM_JOB_NAME"
+mpirun -np 2 --bind-to socket $AMBERHOME/bin/pmemd.cuda.MPI -O -i "$inpdir/02Eq_2.mdin" \
+       -o "Eq_2.mdout" -p "$prmtop" -c "Eq_1.rst" \
+       -r "Eq_2.rst" -ref "Eq_1.rst" -x "Eq_2.nc"
+
+# Decrease restraint on protein to 3 for 2ns
+# in the NPT ensemble, 2.5fs timestep
+echo "Restraint 3 equilibration...of $SLURM_JOB_NAME"
+mpirun -np 2 --bind-to socket $AMBERHOME/bin/pmemd.cuda.MPI -O -i "$inpdir/02Eq_3.mdin" \
+       -o "Eq_3.mdout" -p "$prmtop" -c "Eq_2.rst" \
+       -r "Eq_3.rst" -ref "Eq_2.rst" -x "Eq_3.nc"
+
+# Decrease restraint on protein to 2 for 2ns
+# in the NPT ensemble, 2.5fs timestep
+echo "Restraint 2 equilibration...of $SLURM_JOB_NAME"
+mpirun -np 2 --bind-to socket $AMBERHOME/bin/pmemd.cuda.MPI -O -i "$inpdir/02Eq_4.mdin" \
+       -o "Eq_4.mdout" -p "$prmtop" -c "Eq_3.rst" \
+       -r "Eq_4.rst" -ref "Eq_3.rst" -x "Eq_4.nc"
+
+# Decrease restraint on protein to 1 for 2ns
+# in the NPT ensemble, 2.5fs timestep
+echo "Restraint 1 equilibration...of $SLURM_JOB_NAME"
+mpirun -np 2 --bind-to socket $AMBERHOME/bin/pmemd.cuda.MPI -O -i "$inpdir/02Eq_5.mdin" \
+       -o "Eq_5.mdout" -p "$prmtop" -c "Eq_4.rst" \
+       -r "Eq_5.rst" -ref "Eq_4.rst" -x "Eq_5.nc"
+
+# No-restraint equilibration now done at beginning of production run
+
+# Total of 10ns equilibration now performed.
+# Relevant output files are the .nc trajectories for analysis
+# and the Eq_6.rst for use in production simulations
+echo "Done with equilibration of: $SLURM_JOB_NAME"
+date
