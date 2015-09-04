@@ -4,7 +4,7 @@
 #SBATCH --qos=(QOS)
 #SBATCH --ntasks-per-socket=2 --gres=gpu:gtx:2 --tasks=2
 #SBATCH --output=(REV)slurm.out --open-mode=append
-#SBATCH --mail-user=robin@robinbetz.com
+#SBATCH --mail-user=(WHOAMI)@stanford.edu --mail-type=ALL
 #SBATCH --job-name=(NAM)_prod_(REP)
 #SBATCH --dependency=singleton(INIT)
 #

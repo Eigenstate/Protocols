@@ -42,16 +42,21 @@ read nsec
 nruns=$(echo $(printf %.0f $(echo "(${nsec}/200 + 0.5)/1" | bc -l))) # gross bc it needs to round up
 echo "  Okay, will submit $nruns jobsteps"
 
-echo "Press 1 for a copy of mdin files to be put in the replicate root directory, for you to edit"
-echo "This is most useful if you need to set restraints."
-read ownfiles
-if [[ $ownfiles == "1" ]]; then ownfiles="1"
-else ownfiles="0"; fi
-
 echo "Press 1 for semi-isotropic boundary conditions"
 read ntp
 if [[ $ntp == "1" ]]; then dirsuf="semiisotropic"
 else dirsuf=""; fi
+
+echo "Enter a list of residues to restrain, or press enter"
+read restraints
+if [[ ! -z "$restraints" ]]; then
+  reference=$pre
+  if [[ "$ntp" == "1" ]]; then dirsuf="semiisotropic_restrained"
+  else
+    echo "Sorry, only semi-isotropic restraints currently implemented"
+    exit 1
+  fi
+fi
 
 echo "Press 1 for production runs only"
 read prodonly
@@ -116,20 +121,21 @@ if [[ $prodonly == "0" ]]; then
 fi
 echo "Ok"
 
-# Copy input files into simulation directory if requested
-if [[ $ownfiles=="1" ]]; then
-  cp $inpdir/production/${dirsuf}/Prod_200ns.mdin $dir/production/$rev
-  cp $inpdir/production/${dirsuf}/Eq_6.mdin $dir/production/$rev
-  prodir="$dir/production/$rev"
-else
-  prodir="$inpdir/production/${dirsuf}"
+# Copy input files into simulation directory
+prodir="$dir/production/$rev"
+cp "$inpdir/production/${dirsuf}/Prod_200ns.mdin" "$prodir"
+cp "$inpdir/production/${dirsuf}/Eq_6.mdin" "$prodir"
+
+# Apply reference string if using restraints
+if [[ ! -z "$restraints" ]]; then
+  sed -e "s@(REFS)@$restraints@g" -i "$prodir/Eq_6.mdin"
+  sed -e "s@(REFS)@$restraints@g" -i "$prodir/Prod_200ns.mdin"
 fi
 
 echo
-echo "Created input files in $dir/production"
+echo "Created input files in $dir/production/$rev"
 echo "Edit these files to your specification now."
 echo "Press enter to continue"
-
 read sheepity
 
 # Create input files
@@ -146,6 +152,7 @@ if [[ $prodonly == "0" ]]; then
         -e "s@(PART)@$part@g" \
         -e "s@(INP)@$inpdir/minimization@g" \
         -e "s@(DIR)@$dir@g" \
+        -e "s@(WHOAMI)@$(whoami)@g" \
         < "$inpdir/minimization/PROTOCOL_skelly" > "$dir/minimization/$rev/PROTOCOL.sh"
 
     chmod +x "$dir/minimization/$rev/PROTOCOL.sh"
@@ -166,6 +173,7 @@ if [[ $prodonly == "0" ]]; then
         -e "s@(INP)@$inpdir/equilibration/${dirsuf}@g" \
         -e "s@(MINNUM)@$minjob@g" \
         -e "s@(P2P)@$inpdir/gpuP2PCheck@" \
+        -e "s@(WHOAMI)@$(whoami)@g" \
         < "$inpdir/equilibration/PROTOCOL_skelly" > "$dir/equilibration/$rev/PROTOCOL.sh"
 
     chmod +x "$dir/equilibration/$rev/PROTOCOL.sh"
@@ -177,6 +185,11 @@ fi
 for ((r=1;r<=$rep;r++)); do
   # Initial production run
   # Check if it's been done yet
+  if [[ "$prodonly" == "0" ]]; then
+    depline="singleton,afterok:$eqjob"
+  else
+    depline="singleton"
+  fi
   if [[ ! -f "$dir/production/$rev/$r/Prod_0.rst" ]]; then
     # Continue runs will be qsub'd after this one, and 
     # have singleton dependency so will run next.
@@ -190,9 +203,11 @@ for ((r=1;r<=$rep;r++)); do
           -e "s@(PART)@$part@g" \
           -e "s@(REP)@$r@g" \
           -e "s@(RESNME)@$resnme@g" \
-          -e "s@(P2P)@$inpdir/gpuP2PCheck@" \
-          -e "s@(EQNUM)@$eqjob@g" \
-          < "${inpdir}/production/PROTOCOL_first_skelly" > "$dir/production/$rev/$r/PROTOCOL_init.sh"
+          -e "s@(P2P)@$inpdir/gpuP2PCheck@g" \
+          -e "s@(REFS)@$reference@g" \
+          -e "s@(DEPS)@$depline@g" \
+          -e "s@(WHOAMI)@$(whoami)@g" \
+          < "${inpdir}/production/$dirsuf/PROTOCOL_first_skelly" > "$dir/production/$rev/$r/PROTOCOL_init.sh"
 
           cd "$dir/production/$rev/$r"
           chmod +x "PROTOCOL_init.sh"
@@ -219,8 +234,9 @@ for ((r=1;r<=$rep;r++)); do
         -e "s@(INIT)@$depline@g" \
         -e "s@(REP)@$r@g" \
         -e "s@(RESNME)@$resnme@g" \
-        -e "s@(P2P)@$inpdir/gpuP2PCheck@" \
-        < "${inpdir}/production/PROTOCOL_continue_skelly" > "$dir/production/$rev/$r/PROTOCOL.sh"
+        -e "s@(P2P)@$inpdir/gpuP2PCheck@g" \
+        -e "s@(WHOAMI)@$(whoami)@g" \
+        < "${inpdir}/production/$dirsuf/PROTOCOL_continue_skelly" > "$dir/production/$rev/$r/PROTOCOL.sh"
 
     chmod +x "$dir/production/$rev/$r/PROTOCOL.sh"
     # Submit appropriate number of singleton runs

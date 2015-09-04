@@ -4,7 +4,7 @@
 #SBATCH --qos=(QOS) --gres=gpu:2
 #SBATCH --ntasks-per-socket=2 --tasks=2
 #SBATCH --output=(REV)slurm.out --open-mode=append
-#SBATCH --mail-user=robin@robinbetz.com --mail-type=ALL
+#SBATCH --mail-user=(WHOAMI)@stanford.edu --mail-type=ALL
 #SBATCH --job-name=(NAM)_eq
 # If you want to run after a minimization is done, uncomment this
 # and put in the job number at the end.
