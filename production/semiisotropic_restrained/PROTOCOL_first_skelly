@@ -1,0 +1,86 @@
+#!/bin/bash
+#SBATCH --time=(RUNTIME):00:00
+#SBATCH --partition=(PART)
+#SBATCH --qos=(QOS)
+#SBATCH --ntasks-per-socket=2 --gres=gpu:gtx:2 --tasks=2
+#SBATCH --output=(REV)slurm.out --open-mode=append
+#SBATCH --mail-user=robin@robinbetz.com
+#SBATCH --job-name=(NAM)_prod_(REP)
+#SBATCH --dependency=(DEPS)
+#
+#
+#=====================================================================
+#                            PROTOCOLREV
+#=====================================================================
+# GOAL   : Simulate
+# INPUTS :
+# OUTPUT : 
+# PROJECT: (NAM)
+# PATH   : (DIR)
+# DATE   : (NOW)
+#=====================================================================
+#
+
+# Protocol revision number
+rev="(REV)"
+rep="(REP)"
+
+# Symlinked the output from previous run to be the input here,
+# and symlinked the prmtop from the preparation step
+prmtop="(PRMTOP)"
+last="0"
+rst="(DIR)/equilibration/$rev/Eq_5.rst"
+ref="$rst"
+
+# Directory containing mdin files
+inpdir="(INP)"
+
+# Exit if any command fails
+set -e
+
+# Load necessary modules
+module load cuda/7.5
+module load mpich/3.1.4/gcc
+export AMBERHOME=$PI_HOME/software/amber_dev
+#module load amber/14-cuda
+
+# Check for P2P GPUs. Fail if not
+p2p=$((P2P))
+if [[ "$p2p" == *"NO"* ]]; then
+  echo "ERROR! Didn't get P2P GPUs!"
+  echo "HOSTNAME             = $HOSTNAME"
+  echo "CUDA VISIBLE DEVICES = $CUDA_VISIBLE_DEVICES"
+  exit 1
+else
+  echo "P2P: $p2p"
+fi
+
+# Do last equilibration step in each replicate
+# Remove restraints entirely, equilibrate for 5ns
+# in the NPT ensemble, 2.5fs timestep
+echo "No restraint equilibration for initial run: $SLURM_JOB_NAME"
+mpirun -np 2 --bind-to socket $AMBERHOME/bin/pmemd.cuda.MPI -O -i "$inpdir/Eq_6.mdin" \
+       -o "Eq_6.mdout" -p "$prmtop" -c "$rst" \
+       -r "Eq_6.rst" -ref "$ref" -x "Eq_6.nc"
+rst="Eq_6.nc"
+
+# Simulate at 310K in the NPT ensemble with 2.0fs timestep
+# This run will probably run out of walltime.
+echo "Beginning run: $SLURM_JOB_NAME"
+mpirun -np 2 --bind-to socket $AMBERHOME/bin/pmemd.cuda.MPI -O -i "$inpdir/Prod_(RUNTIME)h.mdin" \
+       -o "Prod_${last}.mdout" -p "$prmtop" -c "Eq_6.rst" \
+       -r "Prod_${last}.rst" -x "Prod_${last}.nc" -ref "$ref"
+
+# Total of equilibration now performed.
+# Relevant output file is the 01Prod.nc trajectory and the 01summary files.
+#echo "Reimaging run: $SLURM_JOB_NAME"
+#cat << EOF > "cpptraj_(NAM).in"
+#trajin "Prod_${last}.nc"
+#autoimage anchor :(RESNME)
+#trajout "Prod_all_reimaged.nc"
+#go
+#EOF
+#cpptraj "$prmtop" "cpptraj_(NAM).in"
+
+echo "Done with run: $SLURM_JOB_NAME"
+

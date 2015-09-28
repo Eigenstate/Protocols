@@ -8,7 +8,7 @@ Lipid production 310K
   WATNAM='TIP3',                   
   OWTNM='OH2',
   tol=0.0000001,   ! SHAKE tolerance
-  nstlim=(NSTEPS), ! Number of MD steps
+  nstlim=(NSTEPS), ! Number of MD steps for 200ns
   ntt=3,           ! Langevin dynamics
   gamma_ln=1.0,    ! Collision frequency for Langevin dyn.
   temp0=310.0,     ! Simulation temperature (K)
@@ -25,4 +25,7 @@ Lipid production 310K
   ioutfm=1,        ! Write binary NetCDF trajectory
   ntxo=2,          ! Write binary restart file
   barostat=2,      ! Use Monte Carlo barostat (Amber 14)
+  ntr=1,           ! Implement restraints 
+  restraintmask=':(REFS) & !@H=',
+  restraint_wt=5.0, ! restrain desired residues
  /
