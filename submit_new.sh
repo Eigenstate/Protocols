@@ -37,9 +37,37 @@ read -e nam
 echo "How many replicates should I start?"
 read rep
 
-echo "How many ns of simulation do you want, maximum?"
+echo "Which queue should I be in? 1 for rondror_high, 2 for rondror, 3 for owners, 4 for shared"
+read qos
+if [[ "$qos" == "1" ]]; then
+  qos="rondror_high"
+  part="rondror"
+  runtime=8
+elif [[ "$qos" == "2" ]]; then
+  qos="rondror"
+  part="rondror"
+  runtime=8
+elif [[ "$qos" == "3" ]]; then
+  qos="normal"
+  part="owners"
+  runtime=48
+elif [[ "$qos" == "5" ]]; then
+  qos="normal"
+  part="gpu"
+  runtime=48
+else exit 1
+fi
+
+echo "What is the approximate speed of your simulation, in ns/day?"
+read speed
+# Calculate number of steps to run with given speed and queue jobstep size
+nstep=$(echo "scale=0; $runtime * $speed * 1000000 / 2.5 / 24" | bc) # number of steps
+stept=$(echo "scale=0; $runtime * $speed / 24" | bc ) # number of nanoseconds
+echo "......That's $stept ns of simulation per jobstep"
+
+echo "How many ns of simulation do you want over all jobsteps?"
 read nsec
-nruns=$(echo $(printf %.0f $(echo "(${nsec}/200 + 0.5)/1" | bc -l))) # gross bc it needs to round up
+nruns=$(echo $(printf %.0f $(echo "($nsec/$stept+ 0.5)/1" | bc -l))) # gross bc it needs to round up
 echo "  Okay, will submit $nruns jobsteps"
 
 echo "Press 1 for semi-isotropic boundary conditions"
@@ -62,26 +90,6 @@ echo "Press 1 for production runs only"
 read prodonly
 if [[ $prodonly == "1" ]]; then prodonly="1"
 else prodonly="0"; fi
-
-echo "What is the residue name of the ligand?"
-read resnme
-
-echo "Which queue should I be in? 1 for rondror_high, 2 for rondror, 3 for owners, 4 for shared"
-read qos
-if [[ "$qos" == "1" ]]; then
-  qos="rondror_high"
-  part="rondror"
-elif [[ "$qos" == "2" ]]; then
-  qos="rondror"
-  part="rondror"
-elif [[ "$qos" == "3" ]]; then
-  qos="normal"
-  part="owners"
-elif [[ "$qos" == "5" ]]; then
-  qos="normal"
-  part="gpu"
-else exit 1
-fi
 
 # Create directory structure if nonexistent
 echo "Checking directory structure"
@@ -123,13 +131,16 @@ echo "Ok"
 
 # Copy input files into simulation directory
 prodir="$dir/production/$rev"
-cp "$inpdir/production/${dirsuf}/Prod_200ns.mdin" "$prodir"
+cp "$inpdir/production/${dirsuf}/Prod_skelly.mdin" "$prodir/Prod_${runtime}h.mdin"
 cp "$inpdir/production/${dirsuf}/Eq_6.mdin" "$prodir"
+
+# Apply number of steps calculated by given speed and queue 
+sed -e "s@(NSTEPS)@$nstep@g" -i "$prodir/Prod_${runtime}h.mdin"
 
 # Apply reference string if using restraints
 if [[ ! -z "$restraints" ]]; then
   sed -e "s@(REFS)@$restraints@g" -i "$prodir/Eq_6.mdin"
-  sed -e "s@(REFS)@$restraints@g" -i "$prodir/Prod_200ns.mdin"
+  sed -e "s@(REFS)@$restraints@g" -i "$prodir/Prod_${runtime}h.mdin"
 fi
 
 echo
@@ -164,7 +175,7 @@ if [[ $prodonly == "0" ]]; then
     echo "Equilibration..."
     sed -e "s@(REV)@$rev@g" \
         -e "s@(PRMTOP)@$prmtop@g" \
-        -e "s@(RST)@${dir}/minimization/$rev/min3.rst@g" \
+        -e "s@(RST)@${dir}/minimization/$rev/min2.rst@g" \
         -e "s@(DIR)@$dir@g" \
         -e "s@(NAM)@$nam@g" \
         -e "s@(NOW)@$(date)@g" \
@@ -202,17 +213,17 @@ for ((r=1;r<=$rep;r++)); do
           -e "s@(QOS)@$qos@g" \
           -e "s@(PART)@$part@g" \
           -e "s@(REP)@$r@g" \
-          -e "s@(RESNME)@$resnme@g" \
           -e "s@(P2P)@$inpdir/gpuP2PCheck@g" \
           -e "s@(REFS)@$reference@g" \
           -e "s@(DEPS)@$depline@g" \
           -e "s@(WHOAMI)@$(whoami)@g" \
+          -e "s@(RUNTIME)@$runtime@g" \
           < "${inpdir}/production/$dirsuf/PROTOCOL_first_skelly" > "$dir/production/$rev/$r/PROTOCOL_init.sh"
 
           cd "$dir/production/$rev/$r"
           chmod +x "PROTOCOL_init.sh"
           initprodjob=$(qsub "PROTOCOL_init.sh")
-          depline=",afterok:$initprodjob"
+          depline=",afterany:$initprodjob"
           cd -
   else
           depline=""
@@ -233,9 +244,9 @@ for ((r=1;r<=$rep;r++)); do
         -e "s@(PART)@$part@g" \
         -e "s@(INIT)@$depline@g" \
         -e "s@(REP)@$r@g" \
-        -e "s@(RESNME)@$resnme@g" \
         -e "s@(P2P)@$inpdir/gpuP2PCheck@g" \
         -e "s@(WHOAMI)@$(whoami)@g" \
+        -e "s@(RUNTIME)@$runtime@g" \
         < "${inpdir}/production/$dirsuf/PROTOCOL_continue_skelly" > "$dir/production/$rev/$r/PROTOCOL.sh"
 
     chmod +x "$dir/production/$rev/$r/PROTOCOL.sh"

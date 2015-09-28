@@ -39,7 +39,7 @@ set -e
 # Load necessary modules
 date
 #module load amber/14-cuda
-module load cuda/7.0
+module load cuda/7.5
 module load mpich/3.1.4/gcc
 export AMBERHOME=$PI_HOME/software/amber_dev
 

@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --time=48:00:00
+#SBATCH --time=(RUNTIME):00:00
 #SBATCH --partition=(PART)
 #SBATCH --qos=(QOS)
 #SBATCH --ntasks-per-socket=2 --gres=gpu:gtx:2 --tasks=2
@@ -12,7 +12,7 @@
 #=====================================================================
 #                            PROTOCOLREV
 #=====================================================================
-# GOAL   : Simulate for 200ns
+# GOAL   : Simulate
 # INPUTS :
 # OUTPUT : 
 # PROJECT: (NAM)
@@ -38,7 +38,7 @@ inpdir="(INP)"
 set -e
 
 # Load necessary modules
-module load cuda/7.0
+module load cuda/7.5
 module load mpich/3.1.4/gcc
 export AMBERHOME=$PI_HOME/software/amber_dev
 #module load amber/14-cuda
@@ -63,23 +63,23 @@ mpirun -np 2 --bind-to socket $AMBERHOME/bin/pmemd.cuda.MPI -O -i "$inpdir/Eq_6.
        -r "Eq_6.rst" -ref "${rst}" -x "Eq_6.nc"
 rst="Eq_6.nc"
 
-# Simulate for 200ns at 310K in the NPT ensemble with 2.0fs timestep
+# Simulateat 310K in the NPT ensemble with 2.0fs timestep
 # This run will probably run out of walltime.
-echo "Beginning 200ns run for run: $SLURM_JOB_NAME"
-mpirun -np 2 --bind-to socket $AMBERHOME/bin/pmemd.cuda.MPI -O -i "$inpdir/Prod_200ns.mdin" \
+echo "Beginning run: $SLURM_JOB_NAME"
+mpirun -np 2 --bind-to socket $AMBERHOME/bin/pmemd.cuda.MPI -O -i "$inpdir/Prod_(RUNTIME)h.mdin" \
        -o "Prod_${last}.mdout" -p "$prmtop" -c "Eq_6.rst" \
        -r "Prod_${last}.rst" -x "Prod_${last}.nc"
 
-# Total of ~200ns equilibration now performed.
+# Total equilibration now performed.
 # Relevant output file is the 01Prod.nc trajectory and the 01summary files.
-echo "Reimaging run: $SLURM_JOB_NAME"
-cat << EOF > "cpptraj_(NAM).in"
-trajin "Prod_${last}.nc"
-autoimage anchor :(RESNME)
-trajout "Prod_all_reimaged.nc"
-go
-EOF
-cpptraj "$prmtop" "cpptraj_(NAM).in"
-
+#echo "Reimaging run: $SLURM_JOB_NAME"
+#cat << EOF > "cpptraj_(NAM).in"
+#trajin "Prod_${last}.nc"
+#autoimage anchor :(RESNME)
+#trajout "Prod_all_reimaged.nc"
+#go
+#EOF
+#cpptraj "$prmtop" "cpptraj_(NAM).in"
+#
 echo "Done with run: $SLURM_JOB_NAME"
 

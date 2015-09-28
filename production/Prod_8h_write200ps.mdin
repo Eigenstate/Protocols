@@ -8,7 +8,7 @@ Lipid production 310K 200ns
   WATNAM='TIP3',                   
   OWTNM='OH2',
   tol=0.0000001,   ! SHAKE tolerance
-  nstlim=(NSTEPS), ! Number of MD steps for 200ns
+  nstlim=80000000, ! Number of MD steps for 200ns
   ntt=3,           ! Langevin dynamics
   gamma_ln=1.0,    ! Collision frequency for Langevin dyn.
   temp0=310.0,     ! Simulation temperature (K)

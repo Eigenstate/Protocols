@@ -1,4 +1,4 @@
-Lipid production 310K 200ns
+Lipid production 310K for 2 hours runtime 
  &cntrl
   imin=0,          ! Molecular dynamics
   ntx=5,           ! Positions and velocities read formatted
@@ -8,7 +8,7 @@ Lipid production 310K 200ns
   WATNAM='TIP3',                   
   OWTNM='OH2',
   tol=0.0000001,   ! SHAKE tolerance
-  nstlim=(NSTEPS), ! Number of MD steps for 200ns
+  nstlim=(NSTEPS), ! Number of MD steps for 2 hours
   ntt=3,           ! Langevin dynamics
   gamma_ln=1.0,    ! Collision frequency for Langevin dyn.
   temp0=310.0,     ! Simulation temperature (K)

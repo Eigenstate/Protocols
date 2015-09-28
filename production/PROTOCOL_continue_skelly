@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --time=48:00:00
+#SBATCH --time=(RUNTIME):00:00
 #SBATCH --partition=(PART)
 #SBATCH --qos=(QOS)
 #SBATCH --ntasks-per-socket=2 --gres=gpu:gtx:2 --tasks=2
@@ -12,7 +12,7 @@
 #=====================================================================
 #                            PROTOCOL(REV)
 #=====================================================================
-# GOAL   : Simulate for 200ns
+# GOAL   : Simulate
 # INPUTS :
 # OUTPUT : 
 # PROJECT: (NAM)
@@ -41,10 +41,9 @@ set -e
 
 # Load necessary modules
 date
-module load cuda/7.0
+module load cuda/7.5
 module load mpich/3.1.4/gcc
 export AMBERHOME=$PI_HOME/software/amber_dev
-#module load amber/14-cuda
 
 # Check for P2P GPUs. Fail if not
 p2p=$((P2P))
@@ -57,34 +56,34 @@ else
   echo "P2P: $p2p"
 fi
 
-# Simulate for 200ns at 310K in the NPT ensemble with 2.0fs timestep
+# Simulate at 310K in the NPT ensemble with 2.0fs timestep
 # This run will probably run out of walltime.
-echo "Beginning 200ns run for run: $SLURM_JOB_NAME"
-mpirun -np 2 --bind-to socket $AMBERHOME/bin/pmemd.cuda.MPI -O -i "$inpdir/Prod_200ns.mdin" \
+echo "Beginning run: $SLURM_JOB_NAME"
+mpirun -np 2 --bind-to socket $AMBERHOME/bin/pmemd.cuda.MPI -O -i "$inpdir/Prod_(RUNTIME)h.mdin" \
        -o "Prod_${last}.mdout" -p "$prmtop" -c "$rst" \
        -r "Prod_${last}.rst" -x "Prod_${last}.nc"
 
-# Total of ~200ns equilibration now performed.
+# Total equilibration now performed.
 # Relevant output file is the 01Prod.nc trajectory and the 01summary files.
-echo "Reimaging run: $SLURM_JOB_NAME"
-cat << EOF > "cpptraj_(NAM).in"
-trajin "Prod_${last}.nc"
-autoimage anchor :(RESNME)
-trajout "Prod_${last}_reimaged.nc"
-go
-EOF
-cpptraj "$prmtop" "cpptraj_(NAM).in"
-
-# Now append that reimaged trajectory to the total one and delete it
-cat << EOF > "cpptraj(NAM).in"
-trajin "Prod_all_reimaged.nc"
-trajin "Prod_${last}_reimaged.nc"
-trajout "Prod_all_reimaged_temp.nc"
-go
-EOF
-cpptraj "$prmtop" "cpptraj_(NAM).in"
-mv "Prod_all_reimaged_temp.nc" "Prod_all_reimaged.nc"
-rm "Prod_${last}_reimaged.nc"
-
+#echo "Reimaging run: $SLURM_JOB_NAME"
+#cat << EOF > "cpptraj_(NAM).in"
+#trajin "Prod_${last}.nc"
+#autoimage anchor :(RESNME)
+#trajout "Prod_${last}_reimaged.nc"
+#go
+#EOF
+#cpptraj "$prmtop" "cpptraj_(NAM).in"
+#
+## Now append that reimaged trajectory to the total one and delete it
+#cat << EOF > "cpptraj(NAM).in"
+#trajin "Prod_all_reimaged.nc"
+#trajin "Prod_${last}_reimaged.nc"
+#trajout "Prod_all_reimaged_temp.nc"
+#go
+#EOF
+#cpptraj "$prmtop" "cpptraj_(NAM).in"
+#mv "Prod_all_reimaged_temp.nc" "Prod_all_reimaged.nc"
+#rm "Prod_${last}_reimaged.nc"
+#
 echo "Done with run: $SLURM_JOB_NAME"
 
