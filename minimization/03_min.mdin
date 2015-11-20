@@ -7,4 +7,6 @@ Final minimization without restraints
   ntf=1,ntc=1,
   ntpr=50, ntwr=200, ! previous 2k
   cut=10.0
+  ntr=1,
+  restraintmask = '!(:POPC | :TIP3 | :SOD | :CLA)', restraint_wt=1.0
 /

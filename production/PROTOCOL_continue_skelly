@@ -4,7 +4,7 @@
 #SBATCH --qos=(QOS)
 #SBATCH --ntasks-per-socket=2 --gres=gpu:gtx:2 --tasks=2
 #SBATCH --output=(REV)slurm.out --open-mode=append
-#SBATCH --mail-user=(WHOAMI)@stanford.edu --mail-type=ALL
+#SBATCH --mail-user=robin@robinbetz.com
 #SBATCH --job-name=(NAM)_prod_(REP)
 #SBATCH --dependency=singleton(INIT)
 #
@@ -30,6 +30,7 @@ rep="(REP)"
 prmtop="(PRMTOP)"
 last=$(ls -1 (DIR)/production/$rev/$rep/Prod*rst | sed -E -e "s@Prod_?@@" -e "s@.rst@@" | sort -n | tail -n 1 | sed "s@(DIR)/production/$rev/$rep/@@g")
 rst="(DIR)/production/$rev/$rep/Prod_${last}.rst"
+ref="(REF)"
 last=$((last+1))
 echo "Next trajectory number for $SLURM_JOB_NAME is: $last"
 
@@ -44,6 +45,7 @@ date
 module load cuda/7.5
 module load mpich/3.1.4/gcc
 export AMBERHOME=$PI_HOME/software/amber_dev
+#module load amber/14-cuda
 
 # Check for P2P GPUs. Fail if not
 p2p=$((P2P))
@@ -61,7 +63,7 @@ fi
 echo "Beginning run: $SLURM_JOB_NAME"
 mpirun -np 2 --bind-to socket $AMBERHOME/bin/pmemd.cuda.MPI -O -i "$inpdir/Prod_(RUNTIME)h.mdin" \
        -o "Prod_${last}.mdout" -p "$prmtop" -c "$rst" \
-       -r "Prod_${last}.rst" -x "Prod_${last}.nc"
+       -r "Prod_${last}.rst" -x "Prod_${last}.nc" -ref "$ref"
 
 # Total equilibration now performed.
 # Relevant output file is the 01Prod.nc trajectory and the 01summary files.

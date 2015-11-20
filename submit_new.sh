@@ -70,20 +70,23 @@ read nsec
 nruns=$(echo $(printf %.0f $(echo "($nsec/$stept+ 0.5)/1" | bc -l))) # gross bc it needs to round up
 echo "  Okay, will submit $nruns jobsteps"
 
-echo "Press 1 for semi-isotropic boundary conditions"
-read ntp
-if [[ $ntp == "1" ]]; then dirsuf="semiisotropic"
-else dirsuf=""; fi
+echo "Using semi-isotropic boundary conditions"
+#echo "Press 1 for semi-isotropic boundary conditions"
+#read ntp
+#if [[ $ntp == "1" ]]; then dirsuf="semiisotropic"
+#else dirsuf=""; fi
 
 echo "Enter a list of residues to restrain, or press enter"
 read restraints
 if [[ ! -z "$restraints" ]]; then
-  reference=$pre
-  if [[ "$ntp" == "1" ]]; then dirsuf="semiisotropic_restrained"
-  else
-    echo "Sorry, only semi-isotropic restraints currently implemented"
-    exit 1
-  fi
+  restraint="ntr=1,\n  restraintmask=':${restraints} \& !@H=',\n  restraint_wt=5.0,\n"
+  #if [[ "$ntp" == "1" ]]; then dirsuf="semiisotropic_restrained"
+  #else
+  #  echo "Sorry, only semi-isotropic restraints currently implemented"
+  #  exit 1
+  #fi
+else
+  restraint=""
 fi
 
 echo "Press 1 for production runs only"
@@ -109,6 +112,7 @@ echo "Ok"
 echo "Checking for input files..."
 prmtop="$dir/${pre}.prmtop"
 inpcrd="$dir/${pre}.inpcrd"
+#reference="$inpcrd"
 if [[ ! -e "$prmtop" || ! -e "$inpcrd" ]]; then
     echo "ERROR: Cannot find prmtop/inpcrd! Names were:"
     echo "       $dir/$pre.prmtop"
@@ -131,23 +135,26 @@ echo "Ok"
 
 # Copy input files into simulation directory
 prodir="$dir/production/$rev"
-cp "$inpdir/production/${dirsuf}/Prod_skelly.mdin" "$prodir/Prod_${runtime}h.mdin"
-cp "$inpdir/production/${dirsuf}/Eq_6.mdin" "$prodir"
+cp "$inpdir/production/Prod_skelly.mdin" "$prodir/Prod_${runtime}h.mdin"
+cp "$inpdir/production/Eq_6.mdin" "$prodir"
 
 # Apply number of steps calculated by given speed and queue 
 sed -e "s@(NSTEPS)@$nstep@g" -i "$prodir/Prod_${runtime}h.mdin"
 
 # Apply reference string if using restraints
-if [[ ! -z "$restraints" ]]; then
-  sed -e "s@(REFS)@$restraints@g" -i "$prodir/Eq_6.mdin"
-  sed -e "s@(REFS)@$restraints@g" -i "$prodir/Prod_${runtime}h.mdin"
-fi
+# Will be blank if no restraints specified
+# Use a / as separator here since there can be an @ in restraint
+sed -e "s/(RESTRAINT)/$restraint/g" -i "$prodir/Eq_6.mdin"
+sed -e "s/(RESTRAINT)/$restraint/g" -i "$prodir/Prod_${runtime}h.mdin"
 
 echo
 echo "Created input files in $dir/production/$rev"
 echo "Edit these files to your specification now."
 echo "Press enter to continue"
 read sheepity
+
+# Reference is output of minimization
+reference="${dir}/minimization/$rev/min3.rst"
 
 # Create input files
 # Use @ in sed separator because '/' is in some of these variables
@@ -164,6 +171,7 @@ if [[ $prodonly == "0" ]]; then
         -e "s@(INP)@$inpdir/minimization@g" \
         -e "s@(DIR)@$dir@g" \
         -e "s@(WHOAMI)@$(whoami)@g" \
+        -e "s@(REF)@$inpcrd@g" \
         < "$inpdir/minimization/PROTOCOL_skelly" > "$dir/minimization/$rev/PROTOCOL.sh"
 
     chmod +x "$dir/minimization/$rev/PROTOCOL.sh"
@@ -175,16 +183,17 @@ if [[ $prodonly == "0" ]]; then
     echo "Equilibration..."
     sed -e "s@(REV)@$rev@g" \
         -e "s@(PRMTOP)@$prmtop@g" \
-        -e "s@(RST)@${dir}/minimization/$rev/min2.rst@g" \
+        -e "s@(RST)@${dir}/minimization/$rev/min3.rst@g" \
         -e "s@(DIR)@$dir@g" \
         -e "s@(NAM)@$nam@g" \
         -e "s@(NOW)@$(date)@g" \
         -e "s@(QOS)@$qos@g" \
         -e "s@(PART)@$part@g" \
-        -e "s@(INP)@$inpdir/equilibration/${dirsuf}@g" \
+        -e "s@(INP)@$inpdir/equilibration@g" \
         -e "s@(MINNUM)@$minjob@g" \
         -e "s@(P2P)@$inpdir/gpuP2PCheck@" \
         -e "s@(WHOAMI)@$(whoami)@g" \
+        -e "s@(REF)@$reference@g" \
         < "$inpdir/equilibration/PROTOCOL_skelly" > "$dir/equilibration/$rev/PROTOCOL.sh"
 
     chmod +x "$dir/equilibration/$rev/PROTOCOL.sh"
@@ -218,7 +227,8 @@ for ((r=1;r<=$rep;r++)); do
           -e "s@(DEPS)@$depline@g" \
           -e "s@(WHOAMI)@$(whoami)@g" \
           -e "s@(RUNTIME)@$runtime@g" \
-          < "${inpdir}/production/$dirsuf/PROTOCOL_first_skelly" > "$dir/production/$rev/$r/PROTOCOL_init.sh"
+          -e "s@(REF)@$reference@g" \
+          < "${inpdir}/production/PROTOCOL_first_skelly" > "$dir/production/$rev/$r/PROTOCOL_init.sh"
 
           cd "$dir/production/$rev/$r"
           chmod +x "PROTOCOL_init.sh"
@@ -247,7 +257,8 @@ for ((r=1;r<=$rep;r++)); do
         -e "s@(P2P)@$inpdir/gpuP2PCheck@g" \
         -e "s@(WHOAMI)@$(whoami)@g" \
         -e "s@(RUNTIME)@$runtime@g" \
-        < "${inpdir}/production/$dirsuf/PROTOCOL_continue_skelly" > "$dir/production/$rev/$r/PROTOCOL.sh"
+        -e "s@(REF)@$reference@g" \
+        < "${inpdir}/production/PROTOCOL_continue_skelly" > "$dir/production/$rev/$r/PROTOCOL.sh"
 
     chmod +x "$dir/production/$rev/$r/PROTOCOL.sh"
     # Submit appropriate number of singleton runs

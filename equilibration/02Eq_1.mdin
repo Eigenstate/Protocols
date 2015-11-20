@@ -19,7 +19,9 @@ High restraint equilibration 310K 2ns
   dt=0.0025,      
   ig=-1, 
   ntb=2,
-  ntp=2,
+  ntp=3,
+  csurften=3,
+  gamma_ten=0.0,   ! Apply no surface tension
   cut=9.0,
   ioutfm=1,
   ntxo=1,

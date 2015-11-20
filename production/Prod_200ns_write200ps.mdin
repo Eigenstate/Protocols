@@ -1,4 +1,4 @@
-Lipid production 310K 200ns
+Lipid production 310K
  &cntrl
   imin=0,          ! Molecular dynamics
   ntx=5,           ! Positions and velocities read formatted
@@ -18,9 +18,13 @@ Lipid production 310K 200ns
   dt=0.0025,       ! Timestep (ps) 2.5fs timestep
   ig=-1,           ! Random seed for Langevin dynamics
   ntb=2,           ! Constant pressure periodic boundary conditions
-  ntp=2,           ! Anisotropic pressure coupling
+  ntp=3,           ! Semiisotropic pressure coupling
+  csurften=3,      ! Hack to get ntp=3 to parse correctly
+  gamma_ten=0.0,   ! Apply no surface tension
   cut=9.0,         ! Nonbonded cutoff (Angstroms)
   ioutfm=1,        ! Write binary NetCDF trajectory
   ntxo=2,          ! Write binary restart file
+  iwrap=1,         ! Wrap coordinates into box
   barostat=2,      ! Use Monte Carlo barostat (Amber 14)
+  (RESTRAINT)
  /

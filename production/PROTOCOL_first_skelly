@@ -4,7 +4,7 @@
 #SBATCH --qos=(QOS)
 #SBATCH --ntasks-per-socket=2 --gres=gpu:gtx:2 --tasks=2
 #SBATCH --output=(REV)slurm.out --open-mode=append
-#SBATCH --mail-user=(WHOAMI)@stanford.edu --mail-type=ALL
+#SBATCH --mail-user=robin@robinbetz.com
 #SBATCH --job-name=(NAM)_prod_(REP)
 #SBATCH --dependency=(DEPS)
 #
@@ -30,6 +30,8 @@ rep="(REP)"
 prmtop="(PRMTOP)"
 last="0"
 rst="(DIR)/equilibration/$rev/Eq_5.rst"
+#ref="$rst"
+ref="(REF)"
 
 # Directory containing mdin files
 inpdir="(INP)"
@@ -59,18 +61,18 @@ fi
 # in the NPT ensemble, 2.5fs timestep
 echo "No restraint equilibration for initial run: $SLURM_JOB_NAME"
 mpirun -np 2 --bind-to socket $AMBERHOME/bin/pmemd.cuda.MPI -O -i "$inpdir/Eq_6.mdin" \
-       -o "Eq_6.mdout" -p "$prmtop" -c "${rst}" \
-       -r "Eq_6.rst" -ref "${rst}" -x "Eq_6.nc"
+       -o "Eq_6.mdout" -p "$prmtop" -c "$rst" \
+       -r "Eq_6.rst" -ref "$ref" -x "Eq_6.nc"
 rst="Eq_6.nc"
 
-# Simulateat 310K in the NPT ensemble with 2.0fs timestep
+# Simulate at 310K in the NPT ensemble with 2.0fs timestep
 # This run will probably run out of walltime.
 echo "Beginning run: $SLURM_JOB_NAME"
 mpirun -np 2 --bind-to socket $AMBERHOME/bin/pmemd.cuda.MPI -O -i "$inpdir/Prod_(RUNTIME)h.mdin" \
        -o "Prod_${last}.mdout" -p "$prmtop" -c "Eq_6.rst" \
-       -r "Prod_${last}.rst" -x "Prod_${last}.nc"
+       -r "Prod_${last}.rst" -x "Prod_${last}.nc" -ref "$ref"
 
-# Total equilibration now performed.
+# Total of equilibration now performed.
 # Relevant output file is the 01Prod.nc trajectory and the 01summary files.
 #echo "Reimaging run: $SLURM_JOB_NAME"
 #cat << EOF > "cpptraj_(NAM).in"
@@ -80,6 +82,6 @@ mpirun -np 2 --bind-to socket $AMBERHOME/bin/pmemd.cuda.MPI -O -i "$inpdir/Prod_
 #go
 #EOF
 #cpptraj "$prmtop" "cpptraj_(NAM).in"
-#
+
 echo "Done with run: $SLURM_JOB_NAME"
 

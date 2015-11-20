@@ -24,6 +24,7 @@ rev=(REV)
 # input files
 prmtop="(PRMTOP)"
 inpcrd="(INPCRD)"
+ref="(REF)"
 
 # Directory with input files
 inpdir="(INP)"
@@ -38,19 +39,17 @@ module load amber/14-intel
 # Minimize holding the protein really fixed and the lipid mostly fixed
 echo "First minimization...of $SLURM_JOB_NAME"
 mpirun -np 8 $AMBERHOME/bin/pmemd.MPI -O -i "$inpdir/01_min.mdin" -o "min1.mdout" -p "$prmtop" \
-           -c "$inpcrd" -r "min1.rst" -ref "$inpcrd"
+           -c "$inpcrd" -r "min1.rst" -ref "$ref"
 
 # Minimize with slightly weaker restraints
 echo "Second minimization...of $SLURM_JOB_NAME"
 mpirun -np 8 $AMBERHOME/bin/pmemd.MPI -O -i "$inpdir/02_min.mdin" -o "min2.mdout" -p "$prmtop" \
-           -c "min1.rst" -r "min2.rst" -ref "min1.rst"
+           -c "min1.rst" -r "min2.rst" -ref "$ref"
 
-# Don't take off the restraints since the first part of equilibration
-# just puts them back on. 4 Sep 15 - Robin
-# Minimize with no restraints
-#echo "Third minimization...of $SLURM_JOB_NAME"
-#mpirun $AMBERHOME/bin/pmemd.MPI -O -i "$inpdir/03_min.mdin" -o "min3.mdout" -p "$prmtop" \
-#           -c "min2.rst" -r "min3.rst"
+# Minimize with restraint weight 1 on non solvent non   
+echo "Third minimization...of $SLURM_JOB_NAME"
+mpirun $AMBERHOME/bin/pmemd.MPI -O -i "$inpdir/03_min.mdin" -o "min3.mdout" -p "$prmtop" \
+           -c "min2.rst" -r "min3.rst" -ref "$ref"
 
 echo "Done with $SLURM_JOB_NAME"
 date
