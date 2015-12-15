@@ -28,7 +28,7 @@ rep="(REP)"
 # Symlinked the output from previous run to be the input here,
 # and symlinked the prmtop from the preparation step
 prmtop="(PRMTOP)"
-last=$(ls -1 (DIR)/production/$rev/$rep/Prod*rst | sed -E -e "s@Prod_?@@" -e "s@.rst@@" | sort -n | tail -n 1 | sed "s@(DIR)/production/$rev/$rep/@@g")
+last=$(ls -1 (DIR)/production/$rev/$rep/Prod*rst | sed -E -e "s@Prod_?@@" -e "s@.rst@@" -e "s@(DIR)/production/$rev/$rep/@@g" | sort -n | tail -n 1)
 rst="(DIR)/production/$rev/$rep/Prod_${last}.rst"
 ref="(REF)"
 last=$((last+1))
