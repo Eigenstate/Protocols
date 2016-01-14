@@ -5,7 +5,8 @@ function usage {
   echo "       -j <job name> -q <queue> -s <speed> -t <time>"
   echo "       -n <# replicates>"
   echo "       [--restraints <restraints>] [--production]"
-  echo ""
+  echo "       [--hmr]"
+  echo
   echo "<revision> = Simulation revision to write"
   echo "<directory> = Root directory of simulation. Defaults to \$PWD"
   echo "<prmtop> = Path to prmtop. Assumes inpcrd has same prefix"
@@ -14,6 +15,7 @@ function usage {
   echo "<time> = Total desired time, in ns"
   echo "<restraints> = Residues to restrain, comma or - separated"
   echo "--production to submit new production runs only"
+  echo "--hmr for increased timestep"
   exit 1
 }
 
@@ -34,6 +36,7 @@ rep=""
 restraints=""
 dir="$PWD"
 prodonly=0
+hmr=0
 
 # Parse input arguments
 while [[ "$#" > 0 ]]; do
@@ -78,6 +81,9 @@ while [[ "$#" > 0 ]]; do
     "--production")
     prodonly=1
     ;;
+    "--hmr")
+    hmr=1
+    ;;
     *)
     usage
     ;;
@@ -105,6 +111,12 @@ if [[ $prodonly -eq 0 && ! -e "${pre}.inpcrd" ]]; then
 fi
 
 # Check queue selected is valid and set variables accordingly
+if [[ "$qos" == "owners"  && "$prodonly" == "0" ]]; then
+    echo "WARNING: Won't minimize or equilibrate on owners."
+    echo "         Setting queue to rondror instead."
+    qos="rondror"
+fi
+
 if [[ "$qos" == "rondror" || "$qos" == "rondor_high" ]]; then
     part="rondror"
     runtime=8
@@ -123,8 +135,19 @@ else
 fi
 
 # Calculate number of steps to run with given speed and queue jobstep size
-# TODO: HMR dt=4
-nstep=$(echo "scale=0; $runtime * $speed * 1000000 / 2.5 / 24" | bc) # number of steps
+if [[ $hmr == "0" ]]; then
+    dt=0.0025
+    heatwrite="ntpr=100, ntwr=10000, ntwx=1000,"
+    eqwrite="ntpr=5000, ntwr=5000, ntwx=10000,"
+    prodwrite="ntpr=25000, ntwr=80000, ntwx=80000,"
+else
+    dt=0.004
+    heatwrite="ntpr=50, ntwr=5000, ntwx=500,"
+    eqwrite="ntpr=3125, ntwr=3125, ntwx=6250,"
+    prodwrite="ntpr=15625, ntwr=50000, ntwx=50000,"
+fi
+
+nstep=$(echo "scale=0; $runtime * $speed * 1000 / $dt / 24" | bc) # number of steps
 stept=$(echo "scale=0; $runtime * $speed / 24" | bc ) # number of nanoseconds
 nruns=$(echo $(printf %.0f $(echo "($nsec/$stept+ 0.5)/1" | bc -l))) # gross bc it needs to round up
 if [[ "$nruns" -eq "0" ]]; then
@@ -192,27 +215,6 @@ if [[ $prodonly == "0" ]]; then
     fi
 fi
 echo "Ok"
-
-# Copy input files into simulation directory
-prodir="$dir/production/$rev"
-cp "$inpdir/production/Prod_skelly.mdin" "$prodir/Prod_${runtime}h.mdin"
-cp "$inpdir/production/Eq_6.mdin" "$prodir"
-
-# Apply number of steps calculated by given speed and queue 
-sed -e "s@(NSTEPS)@$nstep@g" -i "$prodir/Prod_${runtime}h.mdin"
-
-# Apply reference string if using restraints
-# Will be blank if no restraints specified
-# Use a / as separator here since there can be an @ in restraint
-sed -e "s/(RESTRAINT)/$restraint/g" -i "$prodir/Eq_6.mdin"
-sed -e "s/(RESTRAINT)/$restraint/g" -i "$prodir/Prod_${runtime}h.mdin"
-
-echo
-echo "Created input files in $dir/production/$rev"
-echo "Edit these files to your specification now."
-echo "Press enter to continue"
-read sheepity
-
 # Reference is output of minimization
 reference="${dir}/minimization/$rev/min3.rst"
 
@@ -239,8 +241,34 @@ if [[ $prodonly == "0" ]]; then
     minjob=$(qsub "PROTOCOL.sh")
     cd -
 
+    # EQUILIBRATION
+
+    eqdir="$dir/equilibration/$rev"
+    # Create heating mdin files. These are a bit different than other
+    # equlibration files so do them separately
+    # First is 12.5 ps, then second is 125 ps
+    sed -e "s/(DT)/$dt/g" \
+        -e "s/(HEATWRITE)/$heatwrite/g" \
+        -e "s/(NSTEPS)/$(echo "scale=0; 12.5/$dt" | bc)/g" \
+        < "$inpdir/equilibration/Heat_1.mdin" > "$eqdir/Heat_1.mdin"
+    sed -e "s/(DT)/$dt/g" \
+        -e "s/(HEATWRITE)/$heatwrite/g" \
+        -e "s/(NSTEPS)/$(echo "scale=0; 125/$dt" | bc)/g" \
+        < "$inpdir/equilibration/Heat_2.mdin" > "$eqdir/Heat_2.mdin"
+
+    # Now do the equilibration mdin files, each is 2 ns
+    cd "$inpdir/equilibration/"
+    for i in $(ls Eq*mdin); do
+        sed -e "s/(DT)/$dt/g" \
+            -e "s/(EQWRITE)/$eqwrite/g" \
+            -e "s/(NSTEPS)/$(echo "scale=0; 2000/$dt" | bc)/g" \
+            < "$i" > "$eqdir/$i"
+    done
+    cd -
+
     # Equilibration
     echo "Equilibration..."
+    cd $eqdir
     sed -e "s@(REV)@$rev@g" \
         -e "s@(PRMTOP)@$prmtop@g" \
         -e "s@(RST)@${dir}/minimization/$rev/min3.rst@g" \
@@ -249,18 +277,45 @@ if [[ $prodonly == "0" ]]; then
         -e "s@(NOW)@$(date)@g" \
         -e "s@(QOS)@$qos@g" \
         -e "s@(PART)@$part@g" \
-        -e "s@(INP)@$inpdir/equilibration@g" \
+        -e "s@(INP)@$eqdir@g" \
         -e "s@(MINNUM)@$minjob@g" \
         -e "s@(P2P)@$inpdir/gpuP2PCheck@" \
         -e "s@(WHOAMI)@$(whoami)@g" \
         -e "s@(REF)@$reference@g" \
-        < "$inpdir/equilibration/PROTOCOL_skelly" > "$dir/equilibration/$rev/PROTOCOL.sh"
+        < "$inpdir/equilibration/PROTOCOL_skelly" > "$eqdir/PROTOCOL.sh"
 
     chmod +x "$dir/equilibration/$rev/PROTOCOL.sh"
-    cd "$dir/equilibration/$rev"
     eqjob=$(qsub "PROTOCOL.sh")
     cd -
 fi
+
+# SET UP PRODUCTION RUNS 
+prodir="$dir/production/$rev"
+
+# Write settable variables in local copy of input files
+# Use / as a separator here since there can be a '@' in restraint string
+# Nsteps is for 5 ns of runtime in the production final equilibration
+sed -e "s/(RESTRAINT)/$restraint/g" \
+    -e "s/(NSTEPS)/$(echo "scale=0; 5000/$dt" | bc)/g" \
+    -e "s/(DT)/$dt/g" \
+    -e "s/(EQWRITE)/$eqwrite/g" \
+    < "$inpdir/production/Eq_6.mdin" > "$prodir/Eq_6.mdin"
+
+# Same thing for the production file, using calculated nsteps
+# for the desired runtime
+sed -e "s/(RESTRAINT)/$restraint/g" \
+    -e "s/(NSTEPS)/$nstep/g" \
+    -e "s/(DT)/$dt/g" \
+    -e "s/(PRODWRITE)/$prodwrite/g" \
+    < "$inpdir/production/Prod_skelly.mdin" > "$prodir/Prod_${runtime}h.mdin"
+
+echo
+echo "Created production input files in $prodir"
+echo "Edit these files to your specification now."
+echo "Press enter to continue"
+read sheepity
+
+# SUBMIT PRODUCTION RUNS
 
 for ((r=1;r<=$rep;r++)); do
   # Initial production run

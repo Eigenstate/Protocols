@@ -8,14 +8,9 @@ Lipid production 310K
   WATNAM='TIP3',                   
   OWTNM='OH2',
   tol=0.0000001,   ! SHAKE tolerance
-  nstlim=(NSTEPS), ! Number of MD steps for 200ns
   ntt=3,           ! Langevin dynamics
   gamma_ln=1.0,    ! Collision frequency for Langevin dyn.
   temp0=310.0,     ! Simulation temperature (K)
-  ntpr=25000,      ! Print to mdout every ntpr steps
-  ntwr=80000,      ! Write a restart file every ntwr steps
-  ntwx=80000,      ! Write to trajectory file every ntwc steps
-  dt=0.0025,       ! Timestep (ps) 2.5fs timestep
   ig=-1,           ! Random seed for Langevin dynamics
   ntb=2,           ! Constant pressure periodic boundary conditions
   ntp=3,           ! Semiisotropic pressure coupling
@@ -26,5 +21,9 @@ Lipid production 310K
   ntxo=2,          ! Write binary restart file
   iwrap=1,         ! Wrap coordinates into box
   barostat=2,      ! Use Monte Carlo barostat (Amber 14)
+
+  nstlim=(NSTEPS),
+  dt=(DT),        
+  (PRODWRITE)
   (RESTRAINT)
  /
