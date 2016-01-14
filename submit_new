@@ -1,10 +1,137 @@
 #!/bin/bash
 
+function usage {
+  echo "Usage: $0 -r <revision> -d <directory> -p <prmtop>"
+  echo "       -j <job name> -q <queue> -s <speed> -t <time>"
+  echo "       -n <# replicates>"
+  echo "       [--restraints <restraints>] [--production]"
+  echo ""
+  echo "<revision> = Simulation revision to write"
+  echo "<directory> = Root directory of simulation. Defaults to \$PWD"
+  echo "<prmtop> = Path to prmtop. Assumes inpcrd has same prefix"
+  echo "<queue> = rondror | rondror_high | owners | shared"
+  echo "<speed> = Simulation speed, in ns/day"
+  echo "<time> = Total desired time, in ns"
+  echo "<restraints> = Residues to restrain, comma or - separated"
+  echo "--production to submit new production runs only"
+  exit 1
+}
+
 # Check we're on Sherlock
 if [[ $(hostname) != *"sherlock"* ]]; then
     echo "Run script on Sherlock, not $(hostname)!"
     exit 1
 fi
+
+# Set default options
+rev=""
+prmtop=""
+name=""
+qos=""
+speed=""
+nsec=""
+rep=""
+restraints=""
+dir="$PWD"
+prodonly=0
+
+# Parse input arguments
+while [[ "$#" > 0 ]]; do
+  key="$1"
+  case $key in
+    "-r"|"--revision")
+    rev="$2"
+    shift
+    ;;
+    "-d"|"--directory")
+    dir="$2"
+    shift
+    ;;
+    "-p"|"--prmtop")
+    prmtop="$2"
+    shift
+    ;;
+    "-j"|"--name")
+    name="$2"
+    shift
+    ;;
+    "-n"|"--nrep")
+    rep="$2"
+    shift
+    ;;
+    "-q"|"--queue")
+    qos="$2"
+    shift
+    ;;
+    "-s"|"--speed")
+    speed="$2"
+    shift
+    ;;
+    "-t"|"--time")
+    nsec="$2"
+    shift
+    ;;
+    "--restraints")
+    restrainres="$2"
+    shift
+    ;;
+    "--production")
+    prodonly=1
+    ;;
+    *)
+    usage
+    ;;
+  esac
+  shift
+done
+
+# Check for mandatory options
+if [[ -z $rev || -z $rep || -z $name || -z $speed || -z $nsec ]]; then
+    echo "ERROR: Missing a mandatory option"
+    echo "       Do you have -r, -j, -s, -t, and -n ?"
+    usage
+fi
+
+# Check prmtop (and inpcrd if needed) are valid files
+pre=${prmtop%.prmtop}
+if [[ ! -e $prmtop ]]; then
+    echo "ERROR: Cannot find prmtop file: '$prmtop'"
+    exit 1
+fi
+
+if [[ $prodonly -eq 0 && ! -e "${pre}.inpcrd" ]]; then
+    echo "ERROR: Cannot find matching inpcrd file: '${pre}.inpcrd'"
+    exit 1
+fi
+
+# Check queue selected is valid and set variables accordingly
+if [[ "$qos" == "rondror" || "$qos" == "rondor_high" ]]; then
+    part="rondror"
+    runtime=8
+elif [[ "$qos" == "owners" ]]; then
+    qos="normal"
+    part="owners"
+    runtime=48
+elif [[ "$qos" == "shared" ]]; then
+    qos="normal"
+    part="gpu"
+    runtime=48
+else
+    echo "ERROR: Invalid queue choice '$qos'" 
+    usage
+    exit 1
+fi
+
+# Calculate number of steps to run with given speed and queue jobstep size
+# TODO: HMR dt=4
+nstep=$(echo "scale=0; $runtime * $speed * 1000000 / 2.5 / 24" | bc) # number of steps
+stept=$(echo "scale=0; $runtime * $speed / 24" | bc ) # number of nanoseconds
+nruns=$(echo $(printf %.0f $(echo "($nsec/$stept+ 0.5)/1" | bc -l))) # gross bc it needs to round up
+if [[ "$nruns" -eq "0" ]]; then
+    echo "ERROR: Submitting 0 runs? Something wrong"
+    exit 1
+fi
+echo "INFO: Submitting $nruns jobsteps"
 
 # Check for skeleton protocols in input files directory
 # These should all be here if this script is properly configured
@@ -18,81 +145,14 @@ if [[ ! -e "$inpdir/minimization/PROTOCOL_skelly" || \
     exit 1
 fi
 
-# Prompt for relevant variables echo "Welcome to Robin's job submission script!"
-echo "What's the revision?"
+echo "INFO: Using semi-isotropic boundary conditions"
 
-read -e rev
-
-echo "What's the path to the simulation root folder? Type PWD for current folder"
-read -e dir
-if [[ $dir == "PWD" ]]; then dir=$PWD; fi
-
-echo "What's the input prmtop? (Assuming inpcrd is same prefix)"
-read -e pre
-pre=${pre%.prmtop}
-
-echo "What's a short job name prefix?"
-read -e nam
-
-echo "How many replicates should I start?"
-read rep
-
-echo "Which queue should I be in? 1 for rondror_high, 2 for rondror, 3 for owners, 4 for shared"
-read qos
-if [[ "$qos" == "1" ]]; then
-  qos="rondror_high"
-  part="rondror"
-  runtime=8
-elif [[ "$qos" == "2" ]]; then
-  qos="rondror"
-  part="rondror"
-  runtime=8
-elif [[ "$qos" == "3" ]]; then
-  qos="normal"
-  part="owners"
-  runtime=48
-elif [[ "$qos" == "5" ]]; then
-  qos="normal"
-  part="gpu"
-  runtime=48
-else exit 1
-fi
-
-echo "What is the approximate speed of your simulation, in ns/day?"
-read speed
-# Calculate number of steps to run with given speed and queue jobstep size
-nstep=$(echo "scale=0; $runtime * $speed * 1000000 / 2.5 / 24" | bc) # number of steps
-stept=$(echo "scale=0; $runtime * $speed / 24" | bc ) # number of nanoseconds
-echo "......That's $stept ns of simulation per jobstep"
-
-echo "How many ns of simulation do you want over all jobsteps?"
-read nsec
-nruns=$(echo $(printf %.0f $(echo "($nsec/$stept+ 0.5)/1" | bc -l))) # gross bc it needs to round up
-echo "  Okay, will submit $nruns jobsteps"
-
-echo "Using semi-isotropic boundary conditions"
-#echo "Press 1 for semi-isotropic boundary conditions"
-#read ntp
-#if [[ $ntp == "1" ]]; then dirsuf="semiisotropic"
-#else dirsuf=""; fi
-
-echo "Enter a list of residues to restrain, or press enter"
-read restraints
-if [[ ! -z "$restraints" ]]; then
-  restraint="ntr=1,\n  restraintmask=':${restraints} \& !@H=',\n  restraint_wt=5.0,\n"
-  #if [[ "$ntp" == "1" ]]; then dirsuf="semiisotropic_restrained"
-  #else
-  #  echo "Sorry, only semi-isotropic restraints currently implemented"
-  #  exit 1
-  #fi
+# Restraints
+if [[ ! -z "$restrainres" ]]; then
+  restraint="ntr=1,\n  restraintmask=':${restrainres} \& !@H=',\n  restraint_wt=5.0,\n"
 else
   restraint=""
 fi
-
-echo "Press 1 for production runs only"
-read prodonly
-if [[ $prodonly == "1" ]]; then prodonly="1"
-else prodonly="0"; fi
 
 # Create directory structure if nonexistent
 echo "Checking directory structure"
@@ -164,7 +224,7 @@ if [[ $prodonly == "0" ]]; then
     sed -e "s@(REV)@$rev@g" \
         -e "s@(PRMTOP)@$prmtop@g" \
         -e "s@(INPCRD)@$inpcrd@g" \
-        -e "s@(NAM)@$nam@g" \
+        -e "s@(NAM)@$name@g" \
         -e "s@(NOW)@$(date)@g" \
         -e "s@(QOS)@$qos@g" \
         -e "s@(PART)@$part@g" \
@@ -185,7 +245,7 @@ if [[ $prodonly == "0" ]]; then
         -e "s@(PRMTOP)@$prmtop@g" \
         -e "s@(RST)@${dir}/minimization/$rev/min3.rst@g" \
         -e "s@(DIR)@$dir@g" \
-        -e "s@(NAM)@$nam@g" \
+        -e "s@(NAM)@$name@g" \
         -e "s@(NOW)@$(date)@g" \
         -e "s@(QOS)@$qos@g" \
         -e "s@(PART)@$part@g" \
@@ -216,7 +276,7 @@ for ((r=1;r<=$rep;r++)); do
       sed -e "s@(REV)@$rev@g" \
           -e "s@(PRMTOP)@$prmtop@g" \
           -e "s@(DIR)@$dir@g" \
-          -e "s@(NAM)@$nam@g" \
+          -e "s@(NAM)@$name@g" \
           -e "s@(NOW)@$(date)@g" \
           -e "s@(INP)@$prodir@g" \
           -e "s@(QOS)@$qos@g" \
@@ -239,15 +299,14 @@ for ((r=1;r<=$rep;r++)); do
           depline=""
   fi
 
-  # Production
-  echo "Production..."
+  # Production echo "Production..."
   declare -a prodjob
     echo "  Replicate $r..."
 
     sed -e "s@(REV)@$rev@g" \
         -e "s@(PRMTOP)@$prmtop@g" \
         -e "s@(DIR)@$dir@g" \
-        -e "s@(NAM)@$nam@g" \
+        -e "s@(NAM)@$name@g" \
         -e "s@(NOW)@$(date)@g" \
         -e "s@(INP)@$prodir@g" \
         -e "s@(QOS)@$qos@g" \
@@ -274,7 +333,7 @@ echo "Ok"
 # Print a summary
 echo
 echo "---------- SUBMISSION SUMMARY ----------"
-echo " NAME: $nam"
+echo " NAME: $name"
 if [[ $prodonly == "0" ]]; then
     echo " MINIMIZATION:"
     echo "    $minjob"
