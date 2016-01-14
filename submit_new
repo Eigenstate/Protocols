@@ -178,17 +178,17 @@ else
 fi
 
 # Create directory structure if nonexistent
+# Keep everything on scratch, and just a symlink to share
 echo "Checking directory structure"
 if [[ ! -d "$dir" ]]; then mkdir -p $dir; fi
 if [[ ! -d "$dir/minimization/$rev" ]]; then mkdir -p "$dir/minimization/$rev"; fi
 if [[ ! -d "$dir/equilibration/$rev" ]]; then mkdir -p "$dir/equilibration/$rev"; fi
-if [[ ! -d "${dir/share/scratch}" ]]; then mkdir -p "${dir/share/scratch}"; fi
+if [[ ! -d "${dir/scratch/share}" ]]; then ln -s "$dir" "${dir/scratch/share}"; fi
 
 # Make production replicate directories
 for ((r=1;r<=$rep;r++)); do
-  if [[ ! -d "${dir/share/scratch}/production/$rev/$r" ]]; then mkdir -p "${dir/share/scratch}/production/$rev/$r"; fi
+  if [[ ! -d "${dir}/production/$rev/$r" ]]; then mkdir -p "${dir}/production/$rev/$r"; fi
 done
-if [[ ! -e "$dir/production" ]]; then ln -s "${dir/share/scratch}/production" "$dir/production"; fi
 echo "Ok"
 
 # Check that the prmtop and inpcrd exist
