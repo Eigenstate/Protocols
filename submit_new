@@ -117,7 +117,7 @@ if [[ "$qos" == "owners"  && "$prodonly" == "0" ]]; then
     qos="rondror"
 fi
 
-if [[ "$qos" == "rondror" || "$qos" == "rondor_high" ]]; then
+if [[ "$qos" == "rondror" || "$qos" == "rondror_high" ]]; then
     part="rondror"
     runtime=8
 elif [[ "$qos" == "owners" ]]; then
@@ -195,7 +195,6 @@ echo "Ok"
 echo "Checking for input files..."
 prmtop="$dir/${pre}.prmtop"
 inpcrd="$dir/${pre}.inpcrd"
-#reference="$inpcrd"
 if [[ ! -e "$prmtop" || ! -e "$inpcrd" ]]; then
     echo "ERROR: Cannot find prmtop/inpcrd! Names were:"
     echo "       $dir/$pre.prmtop"
@@ -215,8 +214,9 @@ if [[ $prodonly == "0" ]]; then
     fi
 fi
 echo "Ok"
-# Reference is output of minimization
-reference="${dir}/minimization/$rev/min3.rst"
+# Reference is initial minimized coordinates -R (7Mar16)
+reference="$inpcrd"
+#reference="${dir}/minimization/$rev/min3.rst"
 
 # Create input files
 # Use @ in sed separator because '/' is in some of these variables

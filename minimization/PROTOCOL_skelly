@@ -34,6 +34,7 @@ set -e
 
 # Load necessary modules
 date
+#source "$PI_HOME/software/amber_dev/setup_amber.sh"
 module load amber/14-intel
 
 # Minimize holding the protein really fixed and the lipid mostly fixed

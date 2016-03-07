@@ -42,10 +42,7 @@ set -e
 
 # Load necessary modules
 date
-module load cuda/7.5
-module load mpich/3.1.4/gcc
-export AMBERHOME=$PI_HOME/software/amber_dev
-#module load amber/14-cuda
+source "$PI_HOME/software/amber_dev/setup_amber.sh"
 
 # Check for P2P GPUs. Fail if not
 p2p=$((P2P))
