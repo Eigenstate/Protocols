@@ -229,7 +229,7 @@ if [[ $prodonly == "0" ]]; then
 
     # Copy input filesA
     mindir="$dir/minimization/$rev"
-    cp "$inpdir/minimization/*.mdin" "$mindir"
+    cp $inpdir/minimization/*.mdin $mindir
 
     # Create protocol file
     sed -e "s@(REV)@$rev@g" \
@@ -248,7 +248,7 @@ if [[ $prodonly == "0" ]]; then
     chmod +x "$mindir/PROTOCOL.sh"
     cd "$mindir"
     minjob=$(qsub "PROTOCOL.sh")
-    cd -
+    cd - > /dev/null
 
     # EQUILIBRATION
 
@@ -273,7 +273,7 @@ if [[ $prodonly == "0" ]]; then
             -e "s/(NSTEPS)/$(echo "scale=0; 2000/$dt" | bc)/g" \
             < "$i" > "$eqdir/$i"
     done
-    cd -
+    cd - > /dev/null
 
     # Equilibration
     echo "Equilibration..."
@@ -295,7 +295,7 @@ if [[ $prodonly == "0" ]]; then
 
     chmod +x "$dir/equilibration/$rev/PROTOCOL.sh"
     eqjob=$(qsub "PROTOCOL.sh")
-    cd -
+    cd - > /dev/null
 fi
 
 # SET UP PRODUCTION RUNS 
@@ -358,7 +358,7 @@ for ((r=1;r<=$rep;r++)); do
           chmod +x "PROTOCOL_init.sh"
           initprodjob=$(qsub "PROTOCOL_init.sh")
           depline=",afterany:$initprodjob"
-          cd -
+          cd - > /dev/null
   else
           depline=""
   fi
@@ -388,7 +388,7 @@ for ((r=1;r<=$rep;r++)); do
     for ((i=0;i<$((nruns-1));i++)); do
       cd "$dir/production/$rev/$r"
       prodjob[$((rep*(r-1)+i))]=$(qsub "PROTOCOL.sh")
-      cd -
+      cd - > /dev/null
     done
 
 done
