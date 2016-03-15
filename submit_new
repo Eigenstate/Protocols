@@ -221,8 +221,17 @@ reference="$inpcrd"
 # Create input files
 # Use @ in sed separator because '/' is in some of these variables
 if [[ $prodonly == "0" ]]; then
+
+    # MINIMIZATION
+
     echo "Creating jobs:"
     echo "Minimization..."
+
+    # Copy input filesA
+    mindir="$dir/minimization/$rev"
+    cp "$inpdir/minimization/*.mdin" "$mindir"
+
+    # Create protocol file
     sed -e "s@(REV)@$rev@g" \
         -e "s@(PRMTOP)@$prmtop@g" \
         -e "s@(INPCRD)@$inpcrd@g" \
@@ -230,14 +239,14 @@ if [[ $prodonly == "0" ]]; then
         -e "s@(NOW)@$(date)@g" \
         -e "s@(QOS)@$qos@g" \
         -e "s@(PART)@$part@g" \
-        -e "s@(INP)@$inpdir/minimization@g" \
+        -e "s@(INP)@$mindir@g" \
         -e "s@(DIR)@$dir@g" \
         -e "s@(WHOAMI)@$(whoami)@g" \
         -e "s@(REF)@$inpcrd@g" \
-        < "$inpdir/minimization/PROTOCOL_skelly" > "$dir/minimization/$rev/PROTOCOL.sh"
+        < "$inpdir/minimization/PROTOCOL_skelly" > "$mindir/PROTOCOL.sh"
 
-    chmod +x "$dir/minimization/$rev/PROTOCOL.sh"
-    cd "$dir/minimization/$rev"
+    chmod +x "$mindir/PROTOCOL.sh"
+    cd "$mindir"
     minjob=$(qsub "PROTOCOL.sh")
     cd -
 
