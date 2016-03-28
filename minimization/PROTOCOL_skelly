@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --time=2:00:00
 #SBATCH --partition=(PART) --qos=(QOS)
-#SBATCH --ntasks-per-socket=8 --tasks=8
+#SBATCH --ntasks-per-node=8 --tasks=8
 #SBATCH --output=(REV)slurm.out --open-mode=append
 #SBATCH --mail-user=(WHOAMI)@stanford.edu --mail-type=ALL
 #SBATCH --job-name=(NAM)_min
