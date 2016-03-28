@@ -58,9 +58,9 @@ fi
 # Simulate at 310K in the NPT ensemble with 2.0fs timestep
 # This run will probably run out of walltime.
 echo "Beginning run: $SLURM_JOB_NAME"
-mpirun -np 2 --bind-to socket $AMBERHOME/bin/pmemd.cuda.MPI -O -i "$inpdir/Prod_(RUNTIME)h.mdin" \
-       -o "Prod_${last}.mdout" -p "$prmtop" -c "$rst" \
-       -r "Prod_${last}.rst" -x "Prod_${last}.nc" -ref "$ref"
+$MPI_HOME/bin/mpirun -np 2 --bind-to socket $AMBERHOME/bin/pmemd.cuda.MPI -O -i "$inpdir/Prod_(RUNTIME)h.mdin" \
+                     -o "Prod_${last}.mdout" -p "$prmtop" -c "$rst" \
+                     -r "Prod_${last}.rst" -x "Prod_${last}.nc" -ref "$ref"
 
 # Total equilibration now performed.
 # Relevant output file is the 01Prod.nc trajectory and the 01summary files.
