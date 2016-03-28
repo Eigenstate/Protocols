@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --time=12:00:00
+#SBATCH --time=2:00:00
 #SBATCH --partition=(PART) --qos=(QOS)
 #SBATCH --ntasks-per-socket=8 --tasks=8
 #SBATCH --output=(REV)slurm.out --open-mode=append
