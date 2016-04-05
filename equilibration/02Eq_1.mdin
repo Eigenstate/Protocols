@@ -13,10 +13,6 @@ High restraint equilibration 310K 2ns
   ntr=1,
   temp0=310.0,
   ig=-1, 
-  ntb=2,
-  ntp=3,
-  csurften=3,
-  gamma_ten=0.0,   ! Apply no surface tension
   cut=9.0,
   ioutfm=1,
   ntxo=1,
@@ -25,6 +21,7 @@ High restraint equilibration 310K 2ns
   dt=(DT),      
   nstlim=(NSTEPS),
   (EQWRITE)
+  (PRESSURE)
  /
  /
  &ewald

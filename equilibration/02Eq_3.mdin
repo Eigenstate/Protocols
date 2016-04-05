@@ -13,10 +13,6 @@
   ntr=1,
   temp0=310.0,
   ig=-1, 
-  ntb=2,
-  ntp=3,
-  csurften=3,
-  gamma_ten=0.0,   ! Apply no surface tension
   cut=9.0,
   ioutfm=1,
   ntxo=1,
@@ -25,6 +21,7 @@
   dt=(DT),      
   nstlim=(NSTEPS),
   (EQWRITE)
+  (PRESSURE)
  /
  /
  &ewald

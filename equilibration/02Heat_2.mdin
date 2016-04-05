@@ -13,11 +13,6 @@ Lipid 128 heating 303K
   ntr=1,
   ig=-1,
   nmropt=1,
-  ntb=2,        ! Constant pressure periodic boundary conditions
-  ntp=3,        ! Semi-isotropic pressure coupling
-  csurften=3,
-  gamma_ten=0.0,   ! Apply no surface tension
-  taup=2.0,     ! Pressure relaxation time (ps)
   cut=9.0,
   ioutfm=1,
   ntxo=1,
@@ -27,6 +22,8 @@ Lipid 128 heating 303K
   nstlim=(NSTEPS), ! Number of MD steps
   dt=(DT),
   (HEATWRITE)
+  (PRESSURE)
+  taup=2.0,     ! Pressure relaxation time (ps), increased from default 1.0 for heating
  /
  &wt
   type='TEMP0',
