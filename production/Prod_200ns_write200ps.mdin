@@ -15,7 +15,6 @@ Lipid production 310K
   cut=9.0,         ! Nonbonded cutoff (Angstroms)
   ioutfm=1,        ! Write binary NetCDF trajectory
   ntxo=2,          ! Write binary restart file
-  iwrap=1,         ! Wrap coordinates into box
   barostat=2,      ! Use Monte Carlo barostat (Amber 14)
   (PRESSURE)
 
