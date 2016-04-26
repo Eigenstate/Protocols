@@ -18,7 +18,7 @@ Unrestrained equilibration 310K 5ns
   gamma_ten=0.0,   ! Apply no surface tension
   cut=9.0,
   ioutfm=1,
-  ntxo=1,
+  ntxo=2,
 
   dt=(DT),      
   nstlim=(NSTEPS),

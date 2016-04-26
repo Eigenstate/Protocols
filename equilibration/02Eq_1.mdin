@@ -15,7 +15,7 @@ High restraint equilibration 310K 2ns
   ig=-1, 
   cut=9.0,
   ioutfm=1,
-  ntxo=1,
+  ntxo=2,
   restraintmask = '!(:POPC | :TIP3 | :SOD | :CLA)', restraint_wt=5.0, !hold protein fixed
 
   dt=(DT),      
