@@ -41,18 +41,21 @@ echo "First minimization...of $SLURM_JOB_NAME"
 $MPI_HOME/bin/mpirun -np 8 --bind-to socket $AMBERHOME/bin/pmemd.MPI -O -i "$inpdir/01_min.mdin" \
                                                     -o "min1.mdout" -p "$prmtop" \
                                                     -c "$inpcrd" -r "min1.rst" -ref "$ref"
+chmod a-w "min1"*
 
 # Minimize with slightly weaker restraints
 echo "Second minimization...of $SLURM_JOB_NAME"
 $MPI_HOME/bin/mpirun -np 8 --bind-to socket  $AMBERHOME/bin/pmemd.MPI -O -i "$inpdir/02_min.mdin" \
                                                     -o "min2.mdout" -p "$prmtop" \
                                                     -c "min1.rst" -r "min2.rst" -ref "$ref"
+chmod a-w "min2"*
 
 # Minimize with restraint weight 1 on non solvent non   
 echo "Third minimization...of $SLURM_JOB_NAME"
 $MPI_HOME/bin/mpirun -np 8 --bind-to socket $AMBERHOME/bin/pmemd.MPI -O -i "$inpdir/03_min.mdin" \
                                                     -o "min3.mdout" -p "$prmtop" \
                                                     -c "min2.rst" -r "min3.rst" -ref "$ref"
+chmod a-w "min3"*
 
 echo "Done with $SLURM_JOB_NAME"
 date

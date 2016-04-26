@@ -31,6 +31,11 @@ prmtop="(PRMTOP)"
 last=$(ls -1 (DIR)/production/$rev/$rep/Prod*rst | sed -E -e "s@Prod_?@@" -e "s@.rst@@" -e "s@(DIR)/production/$rev/$rep/@@g" | sort -n | tail -n 1)
 rst="(DIR)/production/$rev/$rep/Prod_${last}.rst"
 ref="(REF)"
+
+# Remove write permissions for the previously completed trajectory
+chmod a-w "Prod_${last}"*
+
+# Now start working on the next trajectory
 last=$((last+1))
 echo "Next trajectory number for $SLURM_JOB_NAME is: $last"
 
@@ -63,26 +68,5 @@ $MPI_HOME/bin/mpirun -np 2 --bind-to socket $AMBERHOME/bin/pmemd.cuda.MPI -O -i 
                      -r "Prod_${last}.rst" -x "Prod_${last}.nc" -ref "$ref"
 
 # Total equilibration now performed.
-# Relevant output file is the 01Prod.nc trajectory and the 01summary files.
-#echo "Reimaging run: $SLURM_JOB_NAME"
-#cat << EOF > "cpptraj_(NAM).in"
-#trajin "Prod_${last}.nc"
-#autoimage anchor :(RESNME)
-#trajout "Prod_${last}_reimaged.nc"
-#go
-#EOF
-#cpptraj "$prmtop" "cpptraj_(NAM).in"
-#
-## Now append that reimaged trajectory to the total one and delete it
-#cat << EOF > "cpptraj(NAM).in"
-#trajin "Prod_all_reimaged.nc"
-#trajin "Prod_${last}_reimaged.nc"
-#trajout "Prod_all_reimaged_temp.nc"
-#go
-#EOF
-#cpptraj "$prmtop" "cpptraj_(NAM).in"
-#mv "Prod_all_reimaged_temp.nc" "Prod_all_reimaged.nc"
-#rm "Prod_${last}_reimaged.nc"
-#
 echo "Done with run: $SLURM_JOB_NAME"
 

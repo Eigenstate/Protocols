@@ -140,6 +140,10 @@ else
     exit 1
 fi
 
+# Remove write permissions from prmtop and input coordinates
+chmod a-w "$prmtop"
+chmod a-w "${pre}.inpcrd"
+
 # Print out informative message about pressure
 if [[ "$pressure" == "" ]]; then
     echo "INFO: Defaulting to semiisotropic NPT simulation"

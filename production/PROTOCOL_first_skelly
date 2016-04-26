@@ -62,6 +62,7 @@ $MPI_HOME/bin/mpirun -np 2 --bind-to socket $AMBERHOME/bin/pmemd.cuda.MPI -O -i 
                      -o "Eq_6.mdout" -p "$prmtop" -c "$rst" \
                      -r "Eq_6.rst" -ref "$ref" -x "Eq_6.nc"
 rst="Eq_6.nc"
+chmod a-w "Eq_6"*
 
 # Simulate at 310K in the NPT ensemble with 2.0fs timestep
 # This run will probably run out of walltime.
@@ -70,16 +71,8 @@ $MPI_HOME/bin/mpirun -np 2 --bind-to socket $AMBERHOME/bin/pmemd.cuda.MPI -O -i 
                      -o "Prod_${last}.mdout" -p "$prmtop" -c "Eq_6.rst" \
                      -r "Prod_${last}.rst" -x "Prod_${last}.nc" -ref "$ref"
 
-# Total of equilibration now performed.
-# Relevant output file is the 01Prod.nc trajectory and the 01summary files.
-#echo "Reimaging run: $SLURM_JOB_NAME"
-#cat << EOF > "cpptraj_(NAM).in"
-#trajin "Prod_${last}.nc"
-#autoimage anchor :(RESNME)
-#trajout "Prod_all_reimaged.nc"
-#go
-#EOF
-#cpptraj "$prmtop" "cpptraj_(NAM).in"
+# Remove write permissions for the completed trajectories
+chmod a-w "Prod_${last}"*
 
 echo "Done with run: $SLURM_JOB_NAME"
 
