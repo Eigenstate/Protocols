@@ -17,6 +17,7 @@ function usage {
   echo "--production to submit new production runs only"
   echo "--hmr for increased timestep"
   echo "--isotropic for isotropic pressure control, defaults to semiisotropic"
+  echo "--resubmit to hook into resubmit script"
   exit 1
 }
 
@@ -39,6 +40,7 @@ dir="$PWD"
 prodonly=0
 hmr=0
 pressure=""
+resubmit=0
 
 # Parse input arguments
 while [[ "$#" > 0 ]]; do
@@ -89,6 +91,9 @@ while [[ "$#" > 0 ]]; do
     "--isotropic")
     pressure="ntp=2,"
     echo "INFO: Using isotropic boundary conditions"
+    ;;
+    "--resubmit")
+    resubmit=1
     ;;
     *)
     usage
@@ -409,6 +414,14 @@ for ((r=1;r<=$rep;r++)); do
       prodjob[$((rep*(r-1)+i))]=$(qsub "PROTOCOL.sh")
       cd - > /dev/null
     done
+
+    if [[ "$resubmit" == 1 ]]; then
+        echo "Adding to resubmit queue..."
+        /usr/bin/env python $PI_HOME/software/resubmit/resubmit.py \
+           "$dir/production/$rev/$r/mdinfo" \
+           "$dir/production/$rev/$r/PROTOCOL.sh" \
+           "$nsec"
+    fi
 
 done
 echo "Ok"
