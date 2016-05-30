@@ -33,7 +33,10 @@ rst="(DIR)/production/$rev/$rep/Prod_${last}.rst"
 ref="(REF)"
 
 # Remove write permissions for the previously completed trajectory
-chmod a-w "Prod_${last}"*
+# Only if it completed successfully
+if [[ -f "Prod_${last}.rst" && -s "Prod_${last}.rst" ]]; then
+    chmod a-w "Prod_${last}"*
+fi
 
 # Now start working on the next trajectory
 last=$((last+1))

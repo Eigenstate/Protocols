@@ -71,8 +71,5 @@ $MPI_HOME/bin/mpirun -np 2 --bind-to socket $AMBERHOME/bin/pmemd.cuda.MPI -O -i 
                      -o "Prod_${last}.mdout" -p "$prmtop" -c "Eq_6.rst" \
                      -r "Prod_${last}.rst" -x "Prod_${last}.nc" -ref "$ref"
 
-# Remove write permissions for the completed trajectories
-chmod a-w "Prod_${last}"*
-
 echo "Done with run: $SLURM_JOB_NAME"
 
