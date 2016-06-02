@@ -3,6 +3,7 @@
 #SBATCH --partition=(PART)
 #SBATCH --qos=(QOS)
 #SBATCH --ntasks-per-socket=2 --gres=gpu:gtx:2 --tasks=2
+#SBATCH --gres-flags=enforce-binding
 #SBATCH --output=(REV)slurm.out --open-mode=append
 #SBATCH --mail-user=robin@robinbetz.com
 #SBATCH --job-name=(NAM)_prod_(REP)
@@ -59,8 +60,6 @@ if [[ "$p2p" == *"NO"* ]]; then
   echo "HOSTNAME             = $HOSTNAME"
   echo "CUDA VISIBLE DEVICES = $CUDA_VISIBLE_DEVICES"
   exit 1
-else
-  echo "P2P: $p2p"
 fi
 
 # Simulate at 310K in the NPT ensemble with 2.0fs timestep

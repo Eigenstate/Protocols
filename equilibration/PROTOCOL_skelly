@@ -3,6 +3,7 @@
 #SBATCH --partition=(PART)
 #SBATCH --qos=(QOS) --gres=gpu:2
 #SBATCH --ntasks-per-socket=2 --tasks=2
+#SBATCH --gres-flags=enforce-binding
 #SBATCH --output=(REV)slurm.out --open-mode=append
 #SBATCH --mail-user=(WHOAMI)@stanford.edu --mail-type=ALL
 #SBATCH --job-name=(NAM)_eq
