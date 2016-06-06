@@ -267,7 +267,7 @@ if [[ $prodonly == "0" ]]; then
 
     chmod +x "$mindir/PROTOCOL.sh"
     cd "$mindir"
-    minjob=$(qsub "PROTOCOL.sh")
+    minjob=$(sbatch "PROTOCOL.sh" | awk '{print $4}')
     cd - > /dev/null
 
     # EQUILIBRATION
@@ -316,7 +316,7 @@ if [[ $prodonly == "0" ]]; then
         < "$inpdir/equilibration/PROTOCOL_skelly" > "$eqdir/PROTOCOL.sh"
 
     chmod +x "$dir/equilibration/$rev/PROTOCOL.sh"
-    eqjob=$(qsub "PROTOCOL.sh")
+    eqjob=$(sbatch "PROTOCOL.sh" | awk '{print $4}')
     cd - > /dev/null
 fi
 
@@ -359,7 +359,7 @@ for ((r=1;r<=$rep;r++)); do
     depline="singleton"
   fi
   if [[ ! -f "$dir/production/$rev/$r/Prod_0.rst" ]]; then
-    # Continue runs will be qsub'd after this one, and 
+    # Continue runs will be submitted after this one, and 
     # have singleton dependency so will run next.
       sed -e "s@(REV)@$rev@g" \
           -e "s@(PRMTOP)@$prmtop@g" \
@@ -380,7 +380,7 @@ for ((r=1;r<=$rep;r++)); do
 
           cd "$dir/production/$rev/$r"
           chmod +x "PROTOCOL_init.sh"
-          initprodjob=$(qsub "PROTOCOL_init.sh")
+          initprodjob=$(sbatch "PROTOCOL_init.sh" | awk '{print $4}')
           depline=",afterany:$initprodjob"
           cd - > /dev/null
   else
@@ -411,7 +411,7 @@ for ((r=1;r<=$rep;r++)); do
     # Submit appropriate number of singleton runs
     for ((i=0;i<$((nruns-1));i++)); do
       cd "$dir/production/$rev/$r"
-      prodjob[$((rep*(r-1)+i))]=$(qsub "PROTOCOL.sh")
+      prodjob[$((rep*(r-1)+i))]=$(sbatch "PROTOCOL.sh" | awk '{print $4}')
       cd - > /dev/null
     done
 
