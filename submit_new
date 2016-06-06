@@ -417,10 +417,17 @@ for ((r=1;r<=$rep;r++)); do
 
     if [[ "$resubmit" == 1 ]]; then
         echo "Adding to resubmit queue..."
-        /usr/bin/env python $PI_HOME/software/resubmit/resubmit.py -u \
-           "$dir/production/$rev/$r/mdinfo" \
-           "$dir/production/$rev/$r/PROTOCOL.sh" \
-           "$nsec"
+        if [[ "$prodonly" == "1" ]]; then
+            /usr/bin/env python $PI_HOME/software/resubmit/resubmit.py -u \
+               "$dir/production/$rev/$r/mdinfo" \
+               "$dir/production/$rev/$r/PROTOCOL.sh" \
+               "$nsec"
+        else
+            /usr/bin/env python $PI_HOME/software/resubmit/resubmit.py \
+               "$dir/production/$rev/$r/mdinfo" \
+               "$dir/production/$rev/$r/PROTOCOL.sh" \
+               "$nsec"
+        fi
     fi
 
 done
