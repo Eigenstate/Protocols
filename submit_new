@@ -18,6 +18,7 @@ function usage {
   echo "--hmr for increased timestep"
   echo "--isotropic for isotropic pressure control, defaults to semiisotropic"
   echo "--resubmit to hook into resubmit script"
+  echo "--msm for MSM mode: no output, and no minimization"
   exit 1
 }
 
@@ -42,6 +43,7 @@ prodonly=0
 hmr=0
 pressure=""
 resubmit=0
+msm=0
 
 # Parse input arguments
 while [[ "$#" > 0 ]]; do
@@ -99,6 +101,9 @@ while [[ "$#" > 0 ]]; do
     ;;
     "--resubmit")
     resubmit=1
+    ;;
+    "--msm")
+    msm=1
     ;;
     *)
     usage
@@ -159,7 +164,9 @@ chmod a-w "$inpcrd"
 
 # Print out informative message about pressure
 if [[ "$pressure" == "" ]]; then
-    echo "INFO: Defaulting to semiisotropic NPT simulation"
+    if [[ $msm -eq 0 ]]; then
+        echo "INFO: Defaulting to semiisotropic NPT simulation"
+    fi
     pressure="ntp=3, csurften=3, gamma_ten=0.,"
 fi
 
@@ -187,7 +194,10 @@ if [[ "$nruns" -eq "0" ]]; then
     echo "ERROR: Submitting 0 runs? Something wrong"
     exit 1
 fi
-echo "INFO: Submitting $nruns jobsteps"
+
+if [[ $msm -eq 0 ]]; then
+    echo "INFO: Submitting $nruns jobsteps"
+fi
 
 # Check for skeleton protocols in input files directory
 # These should all be here if this script is properly configured
@@ -211,7 +221,9 @@ fi
 
 # Create directory structure if nonexistent
 # Keep everything on scratch, and just a symlink to share
-echo "Checking directory structure"
+if [[ $msm -eq 0 ]]; then
+    echo "Checking directory structure"
+fi
 if [[ ! -d "$dir" ]]; then mkdir -p $dir; fi
 if [[ ! -d "$dir/minimization/$rev" ]]; then mkdir -p "$dir/minimization/$rev"; fi
 if [[ ! -d "$dir/equilibration/$rev" ]]; then mkdir -p "$dir/equilibration/$rev"; fi
@@ -221,11 +233,13 @@ if [[ ! -d "${dir/scratch/share}" ]]; then ln -s "$dir" "${dir/scratch/share}"; 
 for ((r=1;r<=$rep;r++)); do
   if [[ ! -d "${dir}/production/$rev/$r" ]]; then mkdir -p "${dir}/production/$rev/$r"; fi
 done
-echo "Ok"
+if [[ $msm -eq 0 ]]; then
+    echo "Ok"
+    echo "Checking for overwrites..."
+fi
 
 # Check that the revisions won't overwrite anything
 # Don't check for production files since they are auto-appended
-echo "Checking for overwrites..."
 if [[ $prodonly == "0" ]]; then
     if [[ -e "$dir/minimization/$rev/min1.mdout" || \
           -e "$dir/equilibration/$rev/Eq_1.mdout" ]]; then
@@ -233,14 +247,15 @@ if [[ $prodonly == "0" ]]; then
         exit 1
     fi
 fi
-echo "Ok"
+if [[ $msm -eq 0 ]]; then
+    echo "Ok"
+fi
 # Reference is initial minimized coordinates -R (7Mar16)
 reference="$inpcrd"
-#reference="${dir}/minimization/$rev/min3.rst"
 
 # Create input files
 # Use @ in sed separator because '/' is in some of these variables
-if [[ $prodonly == "0" ]]; then
+if [[ $prodonly -eq 0 && $msm -eq 0 ]]; then
 
     # MINIMIZATION
 
@@ -269,7 +284,9 @@ if [[ $prodonly == "0" ]]; then
     cd "$mindir"
     minjob=$(sbatch "PROTOCOL.sh" | awk '{print $4}')
     cd - > /dev/null
+fi
 
+if [[ $prodonly -eq 0 ]]; then
     # EQUILIBRATION
 
     eqdir="$dir/equilibration/$rev"
@@ -298,7 +315,9 @@ if [[ $prodonly == "0" ]]; then
     cd - > /dev/null
 
     # Equilibration
-    echo "Equilibration..."
+    if [[ $msm -eq 0 ]]; then
+        echo "Equilibration..."
+    fi
     cd $eqdir
     sed -e "s@(REV)@$rev@g" \
         -e "s@(PRMTOP)@$prmtop@g" \
@@ -342,11 +361,13 @@ sed -e "s/(RESTRAINT)/$restraint/g" \
     -e "s/(PRODWRITE)/$prodwrite/g" \
     < "$inpdir/production/Prod_skelly.mdin" > "$prodir/Prod_${runtime}h.mdin"
 
-echo
-echo "Created production input files in $prodir"
-echo "Edit these files to your specification now."
-echo "Press enter to continue"
-read sheepity
+if [[ $msm -eq 0 ]]; then
+    echo
+    echo "Created production input files in $prodir"
+    echo "Edit these files to your specification now."
+    echo "Press enter to continue"
+    read sheepity
+fi
 
 # SUBMIT PRODUCTION RUNS
 
@@ -389,7 +410,9 @@ for ((r=1;r<=$rep;r++)); do
 
   # Production echo "Production..."
   declare -a prodjob
-    echo "  Replicate $r..."
+    if [[ $msm -eq 0 ]]; then
+        echo "  Replicate $r..."
+    fi
 
     sed -e "s@(REV)@$rev@g" \
         -e "s@(PRMTOP)@$prmtop@g" \
@@ -431,25 +454,31 @@ for ((r=1;r<=$rep;r++)); do
     fi
 
 done
-echo "Ok"
 
-# Print a summary
-echo
-echo "---------- SUBMISSION SUMMARY ----------"
-echo " NAME: $name"
-if [[ $prodonly == "0" ]]; then
-    echo " MINIMIZATION:"
-    echo "    $minjob"
-    echo " EQUILIBRATION: "
-    echo "    $eqjob"
+if [[ $msm -eq 0 ]]; then
+    echo "Ok"
+
+    # Print a summary
+    echo
+    echo "---------- SUBMISSION SUMMARY ----------"
+    echo " NAME: $name"
+    if [[ $prodonly == "0" ]]; then
+        echo " MINIMIZATION:"
+        echo "    $minjob"
+        echo " EQUILIBRATION: "
+        echo "    $eqjob"
+    fi
+    echo " PRODUCTION:"
+    for j in ${initprodjobs[@]}; do
+      echo "    $j"
+    done
+    for j in ${prodjob[@]}; do
+      echo "    $j"
+    done
+    echo "----------------------------------------"
+else
+    for j in ${prodjob[@]}; do
+        echo "$j"
+    done
 fi
-echo " PRODUCTION:"
-for j in ${initprodjobs[@]}; do
-  echo "    $j"
-done
-for j in ${prodjob[@]}; do
-  echo "    $j"
-done
-echo "----------------------------------------"
-
 
