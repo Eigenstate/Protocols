@@ -3,9 +3,9 @@
 function usage {
   echo "Usage: $0 -r <revision> -d <directory> -p <prmtop>"
   echo "       -j <job name> -q <queue> -s <speed> -t <time>"
-  echo "       -n <# replicates>"
+  echo "       -n <# replicates> [-c <inpcrd>]"
   echo "       [--restraints <restraints>] [--production]"
-  echo "       [--hmr] [--isotropic]"
+  echo "       [--hmr] [--isotropic] [--msm <repnum>]"
   echo
   echo "<revision> = Simulation revision to write"
   echo "<directory> = Root directory of simulation. Defaults to \$PWD"
@@ -14,12 +14,106 @@ function usage {
   echo "<speed> = Simulation speed, in ns/day"
   echo "<time> = Total desired time, in ns"
   echo "<restraints> = Residues to restrain, comma or - separated"
+  echo "<inpcrd> = Input coordinates to use, if not default named"
   echo "--production to submit new production runs only"
   echo "--hmr for increased timestep"
   echo "--isotropic for isotropic pressure control, defaults to semiisotropic"
   echo "--resubmit to hook into resubmit script"
-  echo "--msm for MSM mode: no output, and no minimization"
+  echo "--msm for MSM mode: no output, and no minimization. Specify replicate number."
   exit 1
+}
+
+declare -a prodjob # Global variable for all production jobs
+function start_production {
+  # Replicate number is parameter
+  echo "Replicate: $1"
+  r="$1"
+  # Initial production run
+  # Check if it's been done yet
+  if [[ "$prodonly" == "0" ]]; then
+    depline="singleton,afterok:$eqjob"
+  else
+    depline="singleton"
+  fi
+  if [[ ! -f "$dir/production/$rev/$r/Prod_0.rst" ]]; then
+    # Continue runs will be submitted after this one, and 
+    # have singleton dependency so will run next.
+      sed -e "s@(REV)@$rev@g" \
+          -e "s@(PRMTOP)@$prmtop@g" \
+          -e "s@(DIR)@$dir@g" \
+          -e "s@(NAM)@$name@g" \
+          -e "s@(NOW)@$(date)@g" \
+          -e "s@(INP)@$prodir@g" \
+          -e "s@(QOS)@$qos@g" \
+          -e "s@(PART)@$part@g" \
+          -e "s@(REP)@$r@g" \
+          -e "s@(P2P)@$inpdir/gpuP2PCheck@g" \
+          -e "s@(REFS)@$reference@g" \
+          -e "s@(DEPS)@$depline@g" \
+          -e "s@(WHOAMI)@$(whoami)@g" \
+          -e "s@(RUNTIME)@$runtime@g" \
+          -e "s@(REF)@$reference@g" \
+          < "${inpdir}/production/PROTOCOL_first_skelly" > "$dir/production/$rev/$r/PROTOCOL_init.sh"
+
+          cd "$dir/production/$rev/$r"
+          chmod +x "PROTOCOL_init.sh"
+          initprodjob=$(sbatch "PROTOCOL_init.sh" | awk '{print $4}')
+          depline=",afterok:$initprodjob"
+          cd - > /dev/null
+  else
+          depline=""
+  fi
+
+  # Production echo "Production..."
+    if [[ $msm -eq 0 ]]; then
+        echo "  Replicate $r..."
+    fi
+
+    sed -e "s@(REV)@$rev@g" \
+        -e "s@(PRMTOP)@$prmtop@g" \
+        -e "s@(DIR)@$dir@g" \
+        -e "s@(NAM)@$name@g" \
+        -e "s@(NOW)@$(date)@g" \
+        -e "s@(INP)@$prodir@g" \
+        -e "s@(QOS)@$qos@g" \
+        -e "s@(PART)@$part@g" \
+        -e "s@(INIT)@$depline@g" \
+        -e "s@(REP)@$r@g" \
+        -e "s@(P2P)@$inpdir/gpuP2PCheck@g" \
+        -e "s@(WHOAMI)@$(whoami)@g" \
+        -e "s@(RUNTIME)@$runtime@g" \
+        -e "s@(REF)@$reference@g" \
+        < "${inpdir}/production/PROTOCOL_continue_skelly" > "$dir/production/$rev/$r/PROTOCOL.sh"
+
+    chmod +x "$dir/production/$rev/$r/PROTOCOL.sh"
+    # Submit appropriate number of singleton runs
+    for ((i=0;i<$((nruns-1));i++)); do
+      cd "$dir/production/$rev/$r"
+      prodjob+=($(sbatch "PROTOCOL.sh" | awk '{print $4}'))
+      #prodjob[$((r*(r-1)+i))]=$(sbatch "PROTOCOL.sh" | awk '{print $4}')
+      cd - > /dev/null
+    done
+
+    if [[ "$resubmit" == 1 ]]; then
+        echo "Adding to resubmit queue..."
+        if [[ "$prodonly" == "1" ]]; then
+            /usr/bin/env python $PI_HOME/software/resubmit/resubmit.py -u \
+               "$dir/production/$rev/$r/mdinfo" \
+               "$dir/production/$rev/$r/PROTOCOL.sh" \
+               "$nsec"
+        else
+            /usr/bin/env python $PI_HOME/software/resubmit/resubmit.py \
+               "$dir/production/$rev/$r/mdinfo" \
+               "$dir/production/$rev/$r/PROTOCOL.sh" \
+               "$nsec"
+        fi
+    fi
+
+    if [[ $msm -ne 0 ]]; then
+        prodjob+=($initprodjob)
+    fi
+
+    return 0
 }
 
 # Check we're on Sherlock
@@ -103,7 +197,8 @@ while [[ "$#" > 0 ]]; do
     resubmit=1
     ;;
     "--msm")
-    msm=1
+    msm="$2"
+    shift
     ;;
     *)
     usage
@@ -111,6 +206,15 @@ while [[ "$#" > 0 ]]; do
   esac
   shift
 done
+
+# Sanity check for msm and rep
+if [[ $msm -ne 0 ]]; then
+    if [[ ! -z $rep ]]; then
+        echo "ERROR: Cannot specify msm mode and number of replicates"
+        usage
+    fi
+    $rep=$msm
+fi
 
 # Check for mandatory options
 if [[ -z $rev || -z $rep || -z $name || -z $speed || -z $nsec ]]; then
@@ -128,6 +232,8 @@ if [[ ! -e "$prmtop" ]]; then
     echo "ERROR: Cannot find prmtop file: '$prmtop'"
     exit 1
 fi
+prmtop=$(readlink -m $prmtop)
+inpcrd=$(readlink -m $inpcrd)
 
 if [[ $prodonly -eq 0 && ! -e "$inpcrd" ]]; then
     echo "ERROR: Cannot find inpcrd file: '$inpcrd'"
@@ -230,12 +336,14 @@ if [[ ! -d "$dir/equilibration/$rev" ]]; then mkdir -p "$dir/equilibration/$rev"
 if [[ ! -d "${dir/scratch/share}" ]]; then ln -s "$dir" "${dir/scratch/share}"; fi
 
 # Make production replicate directories
-for ((r=1;r<=$rep;r++)); do
-  if [[ ! -d "${dir}/production/$rev/$r" ]]; then mkdir -p "${dir}/production/$rev/$r"; fi
-done
 if [[ $msm -eq 0 ]]; then
+    for ((r=1;r<=$rep;r++)); do
+      if [[ ! -d "${dir}/production/$rev/$r" ]]; then mkdir -p "${dir}/production/$rev/$r"; fi
+    done
     echo "Ok"
     echo "Checking for overwrites..."
+else
+    if [[ ! -d "${dir}/production/$rev/$msm" ]]; then mkdir -p "${dir}/production/$rev/$msm"; fi
 fi
 
 # Check that the revisions won't overwrite anything
@@ -370,90 +478,15 @@ if [[ $msm -eq 0 ]]; then
 fi
 
 # SUBMIT PRODUCTION RUNS
-
-for ((r=1;r<=$rep;r++)); do
-  # Initial production run
-  # Check if it's been done yet
-  if [[ "$prodonly" == "0" ]]; then
-    depline="singleton,afterok:$eqjob"
-  else
-    depline="singleton"
-  fi
-  if [[ ! -f "$dir/production/$rev/$r/Prod_0.rst" ]]; then
-    # Continue runs will be submitted after this one, and 
-    # have singleton dependency so will run next.
-      sed -e "s@(REV)@$rev@g" \
-          -e "s@(PRMTOP)@$prmtop@g" \
-          -e "s@(DIR)@$dir@g" \
-          -e "s@(NAM)@$name@g" \
-          -e "s@(NOW)@$(date)@g" \
-          -e "s@(INP)@$prodir@g" \
-          -e "s@(QOS)@$qos@g" \
-          -e "s@(PART)@$part@g" \
-          -e "s@(REP)@$r@g" \
-          -e "s@(P2P)@$inpdir/gpuP2PCheck@g" \
-          -e "s@(REFS)@$reference@g" \
-          -e "s@(DEPS)@$depline@g" \
-          -e "s@(WHOAMI)@$(whoami)@g" \
-          -e "s@(RUNTIME)@$runtime@g" \
-          -e "s@(REF)@$reference@g" \
-          < "${inpdir}/production/PROTOCOL_first_skelly" > "$dir/production/$rev/$r/PROTOCOL_init.sh"
-
-          cd "$dir/production/$rev/$r"
-          chmod +x "PROTOCOL_init.sh"
-          initprodjob=$(sbatch "PROTOCOL_init.sh" | awk '{print $4}')
-          depline=",afterok:$initprodjob"
-          cd - > /dev/null
-  else
-          depline=""
-  fi
-
-  # Production echo "Production..."
-  declare -a prodjob
-    if [[ $msm -eq 0 ]]; then
-        echo "  Replicate $r..."
-    fi
-
-    sed -e "s@(REV)@$rev@g" \
-        -e "s@(PRMTOP)@$prmtop@g" \
-        -e "s@(DIR)@$dir@g" \
-        -e "s@(NAM)@$name@g" \
-        -e "s@(NOW)@$(date)@g" \
-        -e "s@(INP)@$prodir@g" \
-        -e "s@(QOS)@$qos@g" \
-        -e "s@(PART)@$part@g" \
-        -e "s@(INIT)@$depline@g" \
-        -e "s@(REP)@$r@g" \
-        -e "s@(P2P)@$inpdir/gpuP2PCheck@g" \
-        -e "s@(WHOAMI)@$(whoami)@g" \
-        -e "s@(RUNTIME)@$runtime@g" \
-        -e "s@(REF)@$reference@g" \
-        < "${inpdir}/production/PROTOCOL_continue_skelly" > "$dir/production/$rev/$r/PROTOCOL.sh"
-
-    chmod +x "$dir/production/$rev/$r/PROTOCOL.sh"
-    # Submit appropriate number of singleton runs
-    for ((i=0;i<$((nruns-1));i++)); do
-      cd "$dir/production/$rev/$r"
-      prodjob[$((rep*(r-1)+i))]=$(sbatch "PROTOCOL.sh" | awk '{print $4}')
-      cd - > /dev/null
+if [[ $msm -eq 0 ]]; then
+    echo "Not msming.. submitting $rep replicates"
+    for ((x=1;x<=$rep;x++)); do
+        echo " On $x"
+        start_production $x
     done
-
-    if [[ "$resubmit" == 1 ]]; then
-        echo "Adding to resubmit queue..."
-        if [[ "$prodonly" == "1" ]]; then
-            /usr/bin/env python $PI_HOME/software/resubmit/resubmit.py -u \
-               "$dir/production/$rev/$r/mdinfo" \
-               "$dir/production/$rev/$r/PROTOCOL.sh" \
-               "$nsec"
-        else
-            /usr/bin/env python $PI_HOME/software/resubmit/resubmit.py \
-               "$dir/production/$rev/$r/mdinfo" \
-               "$dir/production/$rev/$r/PROTOCOL.sh" \
-               "$nsec"
-        fi
-    fi
-
-done
+else
+    start_production $msm
+fi
 
 if [[ $msm -eq 0 ]]; then
     echo "Ok"
