@@ -2,6 +2,7 @@
 #SBATCH --time=08:00:00
 #SBATCH --partition=(PART)
 #SBATCH --qos=(QOS) --gres=gpu:2
+#SBATCH --constraint="titanx"
 #SBATCH --ntasks-per-socket=2 --tasks=2
 #SBATCH --gres-flags=enforce-binding
 #SBATCH --output=(REV)slurm.out --open-mode=append
