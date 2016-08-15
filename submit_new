@@ -26,7 +26,9 @@ function usage {
 declare -a prodjob # Global variable for all production jobs
 function start_production {
   # Replicate number is parameter
-  echo "Replicate: $1"
+  if [[ $msm -eq 0 ]]; then
+      echo "Replicate: $1"
+  fi
   r="$1"
   # Initial production run
   # Check if it's been done yet
@@ -210,10 +212,11 @@ done
 # Sanity check for msm and rep
 if [[ $msm -ne 0 ]]; then
     if [[ ! -z $rep ]]; then
-        echo "ERROR: Cannot specify msm mode and number of replicates"
-        usage
+        echo "WARNING: Cannot specify msm mode and number of replicates"
+        echo "         Ignoring replicate number"
+    #    usage
     fi
-    $rep=$msm
+    rep=$msm
 fi
 
 # Check for mandatory options
@@ -343,6 +346,7 @@ if [[ $msm -eq 0 ]]; then
     echo "Ok"
     echo "Checking for overwrites..."
 else
+    if [[ ! -d "${dir}/equilibration/$rev/$msm" ]]; then mkdir -p "${dir}/equilibration/$rev/$msm"; fi
     if [[ ! -d "${dir}/production/$rev/$msm" ]]; then mkdir -p "${dir}/production/$rev/$msm"; fi
 fi
 
@@ -350,7 +354,8 @@ fi
 # Don't check for production files since they are auto-appended
 if [[ $prodonly == "0" ]]; then
     if [[ -e "$dir/minimization/$rev/min1.mdout" || \
-          -e "$dir/equilibration/$rev/Eq_1.mdout" ]]; then
+          -e "$dir/equilibration/$rev/Eq_1.mdout" || \
+          -e "$dir/equilibration/$rev/$rep/Eq_1.mdout" ]]; then
         echo "ERROR: Output files found from revision $rev. Won't overwrite."
         exit 1
     fi
@@ -396,8 +401,12 @@ fi
 
 if [[ $prodonly -eq 0 ]]; then
     # EQUILIBRATION
+    if [[ $msm -eq 0 ]]; then
+        eqdir="$dir/equilibration/$rev"
+    else # MSM case gets an equilibration for this replicate too
+        eqdir="$dir/equilibration/$rev/$rep"
+    fi
 
-    eqdir="$dir/equilibration/$rev"
     # Create heating mdin files. These are a bit different than other
     # equlibration files so do them separately
     # First is 12.5 ps, then second is 125 ps
@@ -423,26 +432,31 @@ if [[ $prodonly -eq 0 ]]; then
     cd - > /dev/null
 
     # Equilibration
+    cd $eqdir
     if [[ $msm -eq 0 ]]; then
         echo "Equilibration..."
+        sed -e "s@(MINNUM)@$minjob@g" \
+            -e "s@(RST)@${dir}/minimization/$rev/min3.rst@g" \
+        < "$inpdir/equilibration/PROTOCOL_skelly" > "$eqdir/PROTOCOL.sh"
+    else
+        sed -e "/(MINNUM)/d" \
+            -e "s@(RST)@$inpcrd@g" \
+        < "$inpdir/equilibration/PROTOCOL_skelly" > "$eqdir/PROTOCOL.sh"
     fi
-    cd $eqdir
     sed -e "s@(REV)@$rev@g" \
         -e "s@(PRMTOP)@$prmtop@g" \
-        -e "s@(RST)@${dir}/minimization/$rev/min3.rst@g" \
         -e "s@(DIR)@$dir@g" \
         -e "s@(NAM)@$name@g" \
         -e "s@(NOW)@$(date)@g" \
         -e "s@(QOS)@$qos@g" \
         -e "s@(PART)@$part@g" \
         -e "s@(INP)@$eqdir@g" \
-        -e "s@(MINNUM)@$minjob@g" \
         -e "s@(P2P)@$inpdir/gpuP2PCheck@" \
         -e "s@(WHOAMI)@$(whoami)@g" \
         -e "s@(REF)@$reference@g" \
-        < "$inpdir/equilibration/PROTOCOL_skelly" > "$eqdir/PROTOCOL.sh"
+        -i "$eqdir/PROTOCOL.sh"
 
-    chmod +x "$dir/equilibration/$rev/PROTOCOL.sh"
+    chmod +x "$eqdir/PROTOCOL.sh"
     eqjob=$(sbatch "PROTOCOL.sh" | awk '{print $4}')
     cd - > /dev/null
 fi

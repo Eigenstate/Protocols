@@ -18,7 +18,6 @@
 #=====================================================================
 #
 
-cd "(DIR)"
 # Protocol revision number
 rev=(REV)
 
@@ -29,6 +28,7 @@ ref="(REF)"
 
 # Directory with input files
 inpdir="(INP)"
+cd "$inpdir"
 
 # Exit if any command fails
 set -e
