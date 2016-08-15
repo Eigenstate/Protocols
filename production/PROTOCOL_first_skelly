@@ -3,7 +3,7 @@
 #SBATCH --partition=(PART)
 #SBATCH --qos=(QOS)
 #SBATCH --ntasks-per-socket=2 --gres=gpu:gtx:2 --tasks=2
-##SBATCH --gres-flags=enforce-binding
+#SBATCH --gres-flags=enforce-binding
 #SBATCH --output=(REV)slurm.out --open-mode=append
 #SBATCH --mail-user=robin@robinbetz.com
 #SBATCH --job-name=(NAM)_prod_(REP)
@@ -21,6 +21,8 @@
 # DATE   : (NOW)
 #=====================================================================
 #
+
+cd "(DIR)"
 
 # Protocol revision number
 rev="(REV)"
