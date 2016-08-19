@@ -118,12 +118,6 @@ function start_production {
     return 0
 }
 
-# Check we're on Sherlock
-if [[ $(hostname) != *"sherlock"* ]]; then
-    echo "Run script on Sherlock, not $(hostname)!"
-    exit 1
-fi
-
 # Set default options
 rev=""
 prmtop=""
@@ -140,6 +134,7 @@ hmr=0
 pressure=""
 resubmit=0
 msm=0
+
 
 # Parse input arguments
 while [[ "$#" > 0 ]]; do
