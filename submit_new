@@ -341,6 +341,7 @@ if [[ $msm -eq 0 ]]; then
     echo "Ok"
     echo "Checking for overwrites..."
 else
+    if [[ ! -d "${dir}/minimization/$rev/$msm" ]]; then mkdir -p "${dir}/minimization/$rev/$msm"; fi
     if [[ ! -d "${dir}/equilibration/$rev/$msm" ]]; then mkdir -p "${dir}/equilibration/$rev/$msm"; fi
     if [[ ! -d "${dir}/production/$rev/$msm" ]]; then mkdir -p "${dir}/production/$rev/$msm"; fi
 fi
@@ -363,15 +364,19 @@ reference="$inpcrd"
 
 # Create input files
 # Use @ in sed separator because '/' is in some of these variables
-if [[ $prodonly -eq 0 && $msm -eq 0 ]]; then
+if [[ $prodonly -eq 0 ]]; then
 
     # MINIMIZATION
 
-    echo "Creating jobs:"
-    echo "Minimization..."
+    if [[ $msm -eq 0 ]]; then
+        echo "Creating jobs:"
+        echo "Minimization..."
+        mindir="$dir/minimization/$rev"
+    else
+        mindir="$dir/minimization/$rev/$rep"
+    fi
 
-    # Copy input filesA
-    mindir="$dir/minimization/$rev"
+    # Copy input files
     cp $inpdir/minimization/*.mdin $mindir
 
     # Create protocol file
@@ -430,15 +435,15 @@ if [[ $prodonly -eq 0 ]]; then
     cd $eqdir
     if [[ $msm -eq 0 ]]; then
         echo "Equilibration..."
-        sed -e "s@(MINNUM)@$minjob@g" \
             -e "s@(RST)@${dir}/minimization/$rev/min3.rst@g" \
         < "$inpdir/equilibration/PROTOCOL_skelly" > "$eqdir/PROTOCOL.sh"
-    else
-        sed -e "/(MINNUM)/d" \
-            -e "s@(RST)@$inpcrd@g" \
+    else # Try to restrain to initial coordinates?
+        sed -e "s@(RST)@$inpcrd@g" \
         < "$inpdir/equilibration/PROTOCOL_skelly" > "$eqdir/PROTOCOL.sh"
     fi
+
     sed -e "s@(REV)@$rev@g" \
+        -e "s@(MINNUM)@$minjob@g" \
         -e "s@(PRMTOP)@$prmtop@g" \
         -e "s@(DIR)@$dir@g" \
         -e "s@(NAM)@$name@g" \
