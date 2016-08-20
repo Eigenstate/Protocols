@@ -43,6 +43,7 @@ function start_production {
       sed -e "s@(REV)@$rev@g" \
           -e "s@(PRMTOP)@$prmtop@g" \
           -e "s@(DIR)@$dir@g" \
+          -e "s@(EQDIR)@$eqdir@g" \
           -e "s@(NAM)@$name@g" \
           -e "s@(NOW)@$(date)@g" \
           -e "s@(INP)@$prodir@g" \
@@ -331,7 +332,7 @@ fi
 if [[ ! -d "$dir" ]]; then mkdir -p $dir; fi
 if [[ ! -d "$dir/minimization/$rev" ]]; then mkdir -p "$dir/minimization/$rev"; fi
 if [[ ! -d "$dir/equilibration/$rev" ]]; then mkdir -p "$dir/equilibration/$rev"; fi
-if [[ ! -d "${dir/scratch/share}" ]]; then ln -s "$dir" "${dir/scratch/share}"; fi
+#if [[ ! -d "${dir/scratch/share}" ]]; then ln -s "$dir" "${dir/scratch/share}"; fi
 
 # Make production replicate directories
 if [[ $msm -eq 0 ]]; then
@@ -435,16 +436,12 @@ if [[ $prodonly -eq 0 ]]; then
     cd $eqdir
     if [[ $msm -eq 0 ]]; then
         echo "Equilibration..."
-            -e "s@(RST)@${dir}/minimization/$rev/min3.rst@g" \
-        < "$inpdir/equilibration/PROTOCOL_skelly" > "$eqdir/PROTOCOL.sh"
-    else # Try to restrain to initial coordinates?
-        sed -e "s@(RST)@$inpcrd@g" \
-        < "$inpdir/equilibration/PROTOCOL_skelly" > "$eqdir/PROTOCOL.sh"
     fi
 
     sed -e "s@(REV)@$rev@g" \
         -e "s@(MINNUM)@$minjob@g" \
         -e "s@(PRMTOP)@$prmtop@g" \
+        -e "s@(RST)@$mindir/min3.rst@g" \
         -e "s@(DIR)@$dir@g" \
         -e "s@(NAM)@$name@g" \
         -e "s@(NOW)@$(date)@g" \
@@ -454,7 +451,7 @@ if [[ $prodonly -eq 0 ]]; then
         -e "s@(P2P)@$inpdir/gpuP2PCheck@" \
         -e "s@(WHOAMI)@$(whoami)@g" \
         -e "s@(REF)@$reference@g" \
-        -i "$eqdir/PROTOCOL.sh"
+        < "$inpdir/equilibration/PROTOCOL_skelly" > "$eqdir/PROTOCOL.sh"
 
     chmod +x "$eqdir/PROTOCOL.sh"
     eqjob=$(sbatch "PROTOCOL.sh" | awk '{print $4}')
