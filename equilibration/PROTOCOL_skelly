@@ -43,7 +43,7 @@ set -e
 # Load necessary modules
 date
 #module load amber/14-cuda
-source "$PI_HOME/software/amber_dev/setup_amber.sh"
+source "/share/PI/rondror/software/amber_dev/setup_amber.sh"
 
 # Check for P2P GPUs. Fail if not
 p2p=$((P2P))

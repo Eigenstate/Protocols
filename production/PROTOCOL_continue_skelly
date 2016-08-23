@@ -3,6 +3,7 @@
 #SBATCH --partition=(PART)
 #SBATCH --qos=(QOS)
 #SBATCH --ntasks-per-socket=2 --gres=gpu:gtx:2 --tasks=2
+#SBATCH --constraint="titanx"
 #SBATCH --gres-flags=enforce-binding
 #SBATCH --output=(REV)slurm.out --open-mode=append
 #SBATCH --mail-user=robin@robinbetz.com
@@ -53,7 +54,7 @@ set -e
 
 # Load necessary modules
 date
-source "$PI_HOME/software/amber_dev/setup_amber.sh"
+source "/share/PI/rondror/software/amber_dev/setup_amber.sh"
 
 # Check for P2P GPUs. Fail if not
 p2p=$((P2P))
