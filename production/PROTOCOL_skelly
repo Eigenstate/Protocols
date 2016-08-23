@@ -52,6 +52,40 @@ if [[ "$p2p" == *"NO"* ]]; then
   exit 1
 fi
 
+# Check for last run successful completion
+# $1 = mdout file
+# $2 = skeleton name to delete
+# Example:
+#   check_previous "Prod_1.mdout" "Prod_1"
+# Deletes previous ones if error, kills self
+function check_previous {
+    error=0
+    # Check for NaNs in mdinfo
+    if [[ $(grep -q "NaN" "mdinfo") ]]; then
+        echo "NaN in mdinfo!"
+        error=1
+    fi
+
+    # Check for Nans in mdout
+    if [[ $(grep -q "NaN" "$1") ]]; then
+        echo "NaN in mdout!"
+        error=1
+    fi
+
+    # Check for cuda error as last line
+    if [[ $(tail -n 1 "(REV)slurm.out" | grep -qi "cuda") ]]; then
+        echo "Cuda crash!"
+        error=1
+    fi
+
+    if [[ "$error" -eq 1 ]]; then
+        echo "Deleting $2"
+        rm -f "$2."*
+        exit 1
+    fi
+    return 0
+}
+
 # Do last equilibration step in each replicate
 # Remove restraints entirely, equilibrate for 5ns
 # in the NPT ensemble, 2.5fs timestep
@@ -68,6 +102,7 @@ fi
 # This run will probably run out of walltime.
 if [[ ! -f "Prod_0.rst" ]]; then
     last=0
+    check_previous "Eq_6.mdout" "Eq_6" # Check equilibration completed successfully
     $MPI_HOME/bin/mpirun -np 2 --bind-to socket $AMBERHOME/bin/pmemd.cuda.MPI -O -i "$inpdir/Prod_(RUNTIME)h.mdin" \
                          -o "Prod_${last}.mdout" -p "$prmtop" -c "Eq_6.rst" \
                          -r "Prod_${last}.rst" -x "Prod_${last}.nc" -ref "$ref"
@@ -77,6 +112,9 @@ fi
 # Given final equilibration and initial production run, continue from here
 last=$(ls -1 $inpdir/$rep/Prod*rst | sed -E -e "s@Prod_?@@" -e "s@.rst@@" -e "s@$inpdir/$rep/@@g" | sort -n | tail -n 1)
 rst="$inpdir/$rep/Prod_${last}.rst"
+
+# Check for successful completion
+check_previous "Prod_${last}.mdout" "Prod_${last}"
 
 # Remove write permissions for the previously completed trajectory
 # Only if it completed successfully
