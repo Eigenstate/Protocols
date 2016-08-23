@@ -30,44 +30,12 @@ function start_production {
       echo "Replicate: $1"
   fi
   r="$1"
-  # Initial production run
-  # Check if it's been done yet
+
   if [[ "$prodonly" == "0" ]]; then
     depline="singleton,afterok:$eqjob"
   else
     depline="singleton"
   fi
-  if [[ ! -f "$dir/production/$rev/$r/Prod_0.rst" ]]; then
-    # Continue runs will be submitted after this one, and 
-    # have singleton dependency so will run next.
-      sed -e "s@(REV)@$rev@g" \
-          -e "s@(PRMTOP)@$prmtop@g" \
-          -e "s@(DIR)@$dir@g" \
-          -e "s@(EQDIR)@$eqdir@g" \
-          -e "s@(NAM)@$name@g" \
-          -e "s@(NOW)@$(date)@g" \
-          -e "s@(INP)@$prodir@g" \
-          -e "s@(QOS)@$qos@g" \
-          -e "s@(PART)@$part@g" \
-          -e "s@(REP)@$r@g" \
-          -e "s@(P2P)@$inpdir/gpuP2PCheck@g" \
-          -e "s@(REFS)@$reference@g" \
-          -e "s@(DEPS)@$depline@g" \
-          -e "s@(WHOAMI)@$(whoami)@g" \
-          -e "s@(RUNTIME)@$runtime@g" \
-          -e "s@(REF)@$reference@g" \
-          < "${inpdir}/production/PROTOCOL_first_skelly" > "$dir/production/$rev/$r/PROTOCOL_init.sh"
-
-          cd "$dir/production/$rev/$r"
-          chmod +x "PROTOCOL_init.sh"
-          initprodjob=$(sbatch "PROTOCOL_init.sh" | awk '{print $4}')
-          depline=",afterok:$initprodjob"
-          cd - > /dev/null
-  else
-          depline=""
-  fi
-
-  # Production echo "Production..."
     if [[ $msm -eq 0 ]]; then
         echo "  Replicate $r..."
     fi
@@ -75,27 +43,27 @@ function start_production {
     sed -e "s@(REV)@$rev@g" \
         -e "s@(PRMTOP)@$prmtop@g" \
         -e "s@(DIR)@$dir@g" \
+        -e "s@(EQDIR)@$eqdir@g" \
         -e "s@(NAM)@$name@g" \
         -e "s@(NOW)@$(date)@g" \
         -e "s@(INP)@$prodir@g" \
         -e "s@(QOS)@$qos@g" \
         -e "s@(PART)@$part@g" \
-        -e "s@(INIT)@$depline@g" \
+        -e "s@(DEPS)@$depline@g" \
         -e "s@(REP)@$r@g" \
         -e "s@(P2P)@$inpdir/gpuP2PCheck@g" \
         -e "s@(WHOAMI)@$(whoami)@g" \
         -e "s@(RUNTIME)@$runtime@g" \
         -e "s@(REF)@$reference@g" \
-        < "${inpdir}/production/PROTOCOL_continue_skelly" > "$dir/production/$rev/$r/PROTOCOL.sh"
+        < "${inpdir}/production/PROTOCOL_skelly" > "$dir/production/$rev/$r/PROTOCOL.sh"
 
     chmod +x "$dir/production/$rev/$r/PROTOCOL.sh"
     # Submit appropriate number of singleton runs
+    cd "$dir/production/$rev/$r"
     for ((i=0;i<$((nruns-1));i++)); do
-      cd "$dir/production/$rev/$r"
       prodjob+=($(sbatch "PROTOCOL.sh" | awk '{print $4}'))
-      #prodjob[$((r*(r-1)+i))]=$(sbatch "PROTOCOL.sh" | awk '{print $4}')
-      cd - > /dev/null
     done
+    cd - > /dev/null
 
     if [[ "$resubmit" == 1 ]]; then
         echo "Adding to resubmit queue..."
@@ -110,10 +78,6 @@ function start_production {
                "$dir/production/$rev/$r/PROTOCOL.sh" \
                "$nsec"
         fi
-    fi
-
-    if [[ $msm -ne 0 ]]; then
-        prodjob+=($initprodjob)
     fi
 
     return 0
@@ -513,9 +477,6 @@ if [[ $msm -eq 0 ]]; then
         echo "    $eqjob"
     fi
     echo " PRODUCTION:"
-    for j in ${initprodjobs[@]}; do
-      echo "    $j"
-    done
     for j in ${prodjob[@]}; do
       echo "    $j"
     done
