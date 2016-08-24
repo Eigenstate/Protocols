@@ -40,7 +40,7 @@ prmtop="(PRMTOP)"
 ref="(REF)"
 
 # Load necessary modules
-date
+echo "$(date) on machine $(hostname)"
 source "/share/PI/rondror/software/amber_dev/setup_amber.sh"
 
 # Check for P2P GPUs. Fail if not

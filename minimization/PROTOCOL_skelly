@@ -34,7 +34,7 @@ cd "$inpdir"
 set -e
 
 # Load necessary modules
-date
+echo "$(date) on machine $(hostname)"
 source "/share/PI/rondror/software/amber_dev/setup_amber.sh"
 
 # Minimize holding the protein really fixed and the lipid mostly fixed

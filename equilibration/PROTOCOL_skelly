@@ -41,8 +41,7 @@ cd "$inpdir"
 set -e
 
 # Load necessary modules
-date
-#module load amber/14-cuda
+echo "$(date) on machine $(hostname)"
 source "/share/PI/rondror/software/amber_dev/setup_amber.sh"
 
 # Check for P2P GPUs. Fail if not
