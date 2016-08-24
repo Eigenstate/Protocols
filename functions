@@ -1,0 +1,73 @@
+#!/bin/bash
+
+# This file contains common functions for running MD
+
+#==============================================================================
+
+# Check for last run successful completion
+# $1 = mdout file
+# $2 = skeleton name to delete
+# Example:
+#   check_previous "Prod_1.mdout" "Prod_1"
+# Deletes previous ones if error, kills self
+# Creates a file called "failure" if a failure occured
+function check_previous {
+    error=0
+
+    # Check for NaNs in mdinfo
+    if [[ $(grep -q "NaN" "mdinfo") ]]; then
+        echo "NaN in mdinfo!"
+        error=1
+    fi
+
+    # Check for Nans in mdout
+    if [[ $(grep -q "NaN" "$1") ]]; then
+        echo "NaN in mdout!"
+        error=1
+    fi
+
+    # Check for cuda error as last line
+    if [[ $(tail -n 1 "(REV)slurm.out" | grep -qi "cuda") ]]; then
+        echo "Cuda crash!"
+        error=1
+    fi
+
+    if [[ "$error" -eq 1 ]]; then
+        echo "Deleting $2"
+        rm -f "$2."*
+
+        if [[ -f "failure" ]]; then
+            echo "$(($(cat "failure")+1))" > "failure"
+        else
+            echo "1" > "failure"
+        fi
+    fi
+    rm "failure"
+    return 0
+}
+
+#==============================================================================
+
+# Runs a single step
+# $1 = step name
+# $2 = restart file
+# $3 = input file. If not provided, defaults to $inpdir/$1.mdin
+# Example:
+#   run_md "Heat_2" "Heat_1.rst"
+function run_md {
+    if [[ -z $3 ]]; then
+        inp="$inpdir/${1}.mdin"
+    else
+        inp=$3
+    fi
+
+    $MPI_HOME/bin/mpirun -np 2 --bind-to socket $AMBERHOME/bin/pmemd.cuda.MPI \
+                         -O \
+                         -i "$inp" \
+                         -o "${1}.mdout" -p "$prmtop" -c "$2" \
+                         -r "${1}.rst" -ref "$ref" -x "${1}.nc"
+    chmod a-w "$1"*
+}
+
+#==============================================================================
+

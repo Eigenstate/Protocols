@@ -8,7 +8,6 @@
 #SBATCH --output=(REV)slurm.out --open-mode=append
 #SBATCH --mail-user=robin@robinbetz.com
 #SBATCH --job-name=(NAM)_prod_(REP)
-#SBATCH --dependency=(DEPS)
 #
 #
 #=====================================================================
@@ -52,61 +51,22 @@ if [[ "$p2p" == *"NO"* ]]; then
   exit 1
 fi
 
-# Check for last run successful completion
-# $1 = mdout file
-# $2 = skeleton name to delete
-# Example:
-#   check_previous "Prod_1.mdout" "Prod_1"
-# Deletes previous ones if error, kills self
-function check_previous {
-    error=0
-    # Check for NaNs in mdinfo
-    if [[ $(grep -q "NaN" "mdinfo") ]]; then
-        echo "NaN in mdinfo!"
-        error=1
-    fi
-
-    # Check for Nans in mdout
-    if [[ $(grep -q "NaN" "$1") ]]; then
-        echo "NaN in mdout!"
-        error=1
-    fi
-
-    # Check for cuda error as last line
-    if [[ $(tail -n 1 "(REV)slurm.out" | grep -qi "cuda") ]]; then
-        echo "Cuda crash!"
-        error=1
-    fi
-
-    if [[ "$error" -eq 1 ]]; then
-        echo "Deleting $2"
-        rm -f "$2."*
-        exit 1
-    fi
-    return 0
-}
+# Source the common run functions
+. (FUNFILE)
 
 # Do last equilibration step in each replicate
 # Remove restraints entirely, equilibrate for 5ns
 # in the NPT ensemble, 2.5fs timestep
 if [[ ! -f "Eq_6.rst" ]]; then
-    rst="(EQDIR)/Eq_5.rst"
     echo "No restraint equilibration for initial run: $SLURM_JOB_NAME"
-    $MPI_HOME/bin/mpirun -np 2 --bind-to socket $AMBERHOME/bin/pmemd.cuda.MPI -O -i "$inpdir/Eq_6.mdin" \
-                         -o "Eq_6.mdout" -p "$prmtop" -c "$rst" \
-                         -r "Eq_6.rst" -ref "$ref" -x "Eq_6.nc"
-    chmod a-w "Eq_6"*
+    run_md "Eq_6" "(EQDIR)/Eq_5.rst"
 fi
 
 # Simulate at 310K in the NPT ensemble with 2.0fs timestep
 # This run will probably run out of walltime.
 if [[ ! -f "Prod_0.rst" ]]; then
-    last=0
     check_previous "Eq_6.mdout" "Eq_6" # Check equilibration completed successfully
-    $MPI_HOME/bin/mpirun -np 2 --bind-to socket $AMBERHOME/bin/pmemd.cuda.MPI -O -i "$inpdir/Prod_(RUNTIME)h.mdin" \
-                         -o "Prod_${last}.mdout" -p "$prmtop" -c "Eq_6.rst" \
-                         -r "Prod_${last}.rst" -x "Prod_${last}.nc" -ref "$ref"
-    chmod a-w "Prod_0"*
+    run_md "Prod_0" "Eq_6.rst"
 fi
 
 # Given final equilibration and initial production run, continue from here
@@ -124,14 +84,11 @@ fi
 
 # Now start working on the next trajectory
 last=$((last+1))
-echo "Next trajectory number for $SLURM_JOB_NAME is: $last"
 
 # Simulate at 310K in the NPT ensemble with 2.0fs timestep
 # This run will probably run out of walltime.
-echo "Beginning run: $SLURM_JOB_NAME"
-$MPI_HOME/bin/mpirun -np 2 --bind-to socket $AMBERHOME/bin/pmemd.cuda.MPI -O -i "$inpdir/Prod_(RUNTIME)h.mdin" \
-                     -o "Prod_${last}.mdout" -p "$prmtop" -c "$rst" \
-                     -r "Prod_${last}.rst" -x "Prod_${last}.nc" -ref "$ref"
+echo "Beginning run: $SLURM_JOB_NAME trajectory number: $last"
+run_md "Prod_${last}" "$rst" "$inpdir/Prod_(RUNTIME)h.mdin"
 
 # Total equilibration now performed.
 echo "Done with run: $SLURM_JOB_NAME"

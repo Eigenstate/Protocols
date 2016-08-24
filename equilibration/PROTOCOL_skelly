@@ -6,7 +6,7 @@
 #SBATCH --ntasks-per-socket=2 --tasks=2
 #SBATCH --gres-flags=enforce-binding
 #SBATCH --output=(REV)slurm.out --open-mode=append
-#SBATCH --mail-user=(WHOAMI)@stanford.edu --mail-type=ALL
+#SBATCH --mail-user=(WHOAMI)@stanford.edu --mail-type=END,FAIL
 #SBATCH --job-name=(NAM)_eq
 # If you want to run after a minimization is done, uncomment this
 # and put in the job number at the end.
@@ -53,63 +53,53 @@ if [[ "$p2p" == *"NO"* ]]; then
   exit 1
 fi
 
+# Source the common run functions
+. (FUNFILE)
+
 # Heat from 0 to 100K with restraints 10 on the lipid and protein for 12.5ps
 # in the NVT ensemble, 2.5fs timsetep
 echo "NVT heating... of $SLURM_JOB_NAME"
-$MPI_HOME/bin/mpirun -np 2 --bind-to socket $AMBERHOME/bin/pmemd.cuda.MPI -O -i "$inpdir/Heat_1.mdin" \
-                     -o "Heat_1.mdout" -p "$prmtop" -c "$rst" \
-                     -r "Heat_1.rst" -ref "$ref" -x "Heat_1.nc"
-chmod a-w "Heat_1"*
+run_md "Heat_1" "$rst"
 
 # Heat again from 100 to 310K with restraints 10 on the lipid and protein for
 # 125ps in NTP ensemble, 2.5fs timestep
 echo "NTP heating...of $SLURM_JOB_NAME"
-$MPI_HOME/bin/mpirun -np 2 --bind-to socket $AMBERHOME/bin/pmemd.cuda.MPI -O -i "$inpdir/Heat_2.mdin" \
-                     -o "Heat_2.mdout" -p "$prmtop" -c "Heat_1.rst" \
-                     -r "Heat_2.rst" -ref "$ref" -x "Heat_2.nc"
-chmod a-w "Heat_2"*
+check_previous "Heat_1.mdout" "Heat_1"
+run_md "Heat_2" "Heat_1.rst"
 
 # Equilibrate with restraint 5 on protein only for 2ns
 # in the NPT ensemble, 2.5fs timestep
 echo "Restraint 5 equilibration...of $SLURM_JOB_NAME"
-$MPI_HOME/bin/mpirun -np 2 --bind-to socket $AMBERHOME/bin/pmemd.cuda.MPI -O -i "$inpdir/Eq_1.mdin" \
-                     -o "Eq_1.mdout" -p "$prmtop" -c "Heat_2.rst" \
-                     -r "Eq_1.rst" -ref "$ref" -x "Eq_1.nc"
-chmod a-w "Eq_1"*
+check_previous "Heat_2.mdout" "Heat_2"
+run_md "Eq_1" "Heat_2.rst"
 
 # Decrease restraint on protein to 4 for 2ns
 # in the NPT ensemble, 2.5fs timestep
 echo "Restraint 4 equilibration...of $SLURM_JOB_NAME"
-$MPI_HOME/bin/mpirun -np 2 --bind-to socket $AMBERHOME/bin/pmemd.cuda.MPI -O -i "$inpdir/Eq_2.mdin" \
-                     -o "Eq_2.mdout" -p "$prmtop" -c "Eq_1.rst" \
-                     -r "Eq_2.rst" -ref "$ref" -x "Eq_2.nc"
-chmod a-w "Eq_2"*
+check_previous "Eq_1.mdout" "Eq_1"
+run_md "Eq_2" "Eq_1.rst"
 
 # Decrease restraint on protein to 3 for 2ns
 # in the NPT ensemble, 2.5fs timestep
 echo "Restraint 3 equilibration...of $SLURM_JOB_NAME"
-$MPI_HOME/bin/mpirun -np 2 --bind-to socket $AMBERHOME/bin/pmemd.cuda.MPI -O -i "$inpdir/Eq_3.mdin" \
-                     -o "Eq_3.mdout" -p "$prmtop" -c "Eq_2.rst" \
-                     -r "Eq_3.rst" -ref "$ref" -x "Eq_3.nc"
-chmod a-w "Eq_3"*
+check_previous "Eq_2.mdout" "Eq_2"
+run_md "Eq_3" "Eq_2.rst"
 
 # Decrease restraint on protein to 2 for 2ns
 # in the NPT ensemble, 2.5fs timestep
 echo "Restraint 2 equilibration...of $SLURM_JOB_NAME"
-$MPI_HOME/bin/mpirun -np 2 --bind-to socket $AMBERHOME/bin/pmemd.cuda.MPI -O -i "$inpdir/Eq_4.mdin" \
-                     -o "Eq_4.mdout" -p "$prmtop" -c "Eq_3.rst" \
-                     -r "Eq_4.rst" -ref "$ref" -x "Eq_4.nc"
-chmod a-w "Eq_4"*
+check_previous "Eq_3.mdout" "Eq_3"
+run_md "Eq_4" "Eq_3.rst"
 
 # Decrease restraint on protein to 1 for 2ns
 # in the NPT ensemble, 2.5fs timestep
 echo "Restraint 1 equilibration...of $SLURM_JOB_NAME"
-$MPI_HOME/bin/mpirun -np 2 --bind-to socket $AMBERHOME/bin/pmemd.cuda.MPI -O -i "$inpdir/Eq_5.mdin" \
-                     -o "Eq_5.mdout" -p "$prmtop" -c "Eq_4.rst" \
-                     -r "Eq_5.rst" -ref "$ref" -x "Eq_5.nc"
-chmod a-w "Eq_5"*
+check_previous "Eq_4.mdout" "Eq_4"
+run_md "Eq_5" "Eq_4.rst"
 
 # No-restraint equilibration now done at beginning of production run
+# Ensure the last equilibration completed successfully before quitting
+check_previous "Eq_5.mdout" "Eq_5"
 
 # Total of 10ns equilibration now performed.
 # Relevant output files are the .nc trajectories for analysis

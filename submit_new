@@ -24,17 +24,20 @@ function usage {
 }
 
 declare -a prodjob # Global variable for all production jobs
+
+# Starts production jobs
+# $1 = replicate number
+# $2 = equilibration job id, if started
 function start_production {
-  # Replicate number is parameter
   if [[ $msm -eq 0 ]]; then
       echo "Replicate: $1"
   fi
   r="$1"
-
-  if [[ "$prodonly" == "0" ]]; then
-    depline="singleton,afterok:$eqjob"
-  else
+  
+  if [[ -z $2 ]]; then
     depline="singleton"
+  else
+    depline="singleton,afterok:$2"
   fi
     if [[ $msm -eq 0 ]]; then
         echo "  Replicate $r..."
@@ -49,19 +52,19 @@ function start_production {
         -e "s@(INP)@$prodir@g" \
         -e "s@(QOS)@$qos@g" \
         -e "s@(PART)@$part@g" \
-        -e "s@(DEPS)@$depline@g" \
         -e "s@(REP)@$r@g" \
         -e "s@(P2P)@$inpdir/gpuP2PCheck@g" \
         -e "s@(WHOAMI)@$(whoami)@g" \
         -e "s@(RUNTIME)@$runtime@g" \
         -e "s@(REF)@$reference@g" \
+        -e "s@(FUNFILE)@$inpdir/functions@g" \
         < "${inpdir}/production/PROTOCOL_skelly" > "$dir/production/$rev/$r/PROTOCOL.sh"
 
     chmod +x "$dir/production/$rev/$r/PROTOCOL.sh"
     # Submit appropriate number of singleton runs
     cd "$dir/production/$rev/$r"
     for ((i=0;i<$((nruns-1));i++)); do
-      prodjob+=($(sbatch "PROTOCOL.sh" | awk '{print $4}'))
+      prodjob+=($(sbatch --dependency="$depline" "PROTOCOL.sh" | awk '{print $4}'))
     done
     cd - > /dev/null
 
@@ -99,7 +102,6 @@ hmr=0
 pressure=""
 resubmit=0
 msm=0
-
 
 # Parse input arguments
 while [[ "$#" > 0 ]]; do
@@ -391,6 +393,7 @@ if [[ $prodonly -eq 0 ]]; then
         sed -e "s/(DT)/$dt/g" \
             -e "s/(PRESSURE)/$pressure/g"\
             -e "s/(EQWRITE)/$eqwrite/g" \
+            -e "s@(FUNFILE)@$inpdir/functions@g" \
             -e "s/(NSTEPS)/$(echo "scale=0; 2000/$dt" | bc)/g" \
             < "$i" > "$eqdir/$i"
     done
@@ -457,10 +460,10 @@ if [[ $msm -eq 0 ]]; then
     echo "Not msming.. submitting $rep replicates"
     for ((x=1;x<=$rep;x++)); do
         echo " On $x"
-        start_production $x
+        start_production $x $eqjob
     done
 else
-    start_production $msm
+    start_production $msm $eqjob
 fi
 
 if [[ $msm -eq 0 ]]; then
