@@ -17,7 +17,9 @@ function usage {
   echo "<inpcrd> = Input coordinates to use, if not default named"
   echo "--production to submit new production runs only"
   echo "--hmr for increased timestep"
-  echo "--isotropic for isotropic pressure control, defaults to semiisotropic"
+  echo "--isotropic for isotropic pressure control"
+  echo "--anisotropic for anisotropic pressure control"
+  echo "--semiisotropic for semiisotropic pressure control"
   echo "--resubmit to hook into resubmit script"
   echo "--msm for MSM mode: no output, and no minimization. Specify replicate number."
   exit 1
@@ -153,9 +155,17 @@ while [[ "$#" > 0 ]]; do
     "--hmr")
     hmr=1
     ;;
+    "--semiisotropic")
+    pressure="ntp=3, csurften=3, gamma_ten=0.,"
+    echo "INFO: Using semi-isotropic boundary conditions"
+    ;;
     "--isotropic")
-    pressure="ntp=2,"
+    pressure="ntp=1,"
     echo "INFO: Using isotropic boundary conditions"
+    ;;
+    "--anisotropic")
+    pressure="ntp=2,"
+    echo "INFO: Using anisotropic boundary conditions"
     ;;
     "--resubmit")
     resubmit=1
@@ -186,6 +196,11 @@ if [[ -z $rev || -z $rep || -z $name || -z $speed || -z $nsec ]]; then
     echo "ERROR: Missing a mandatory option"
     echo "       Do you have -r, -j, -s, -t, and -n ?"
     usage
+fi
+
+if [[ -z $pressure ]]; then
+    echo "ERROR: Missing a pressure options"
+    echo "       You need to state which pressure control to use"
 fi
 
 # Check prmtop (and inpcrd if needed) are valid files
@@ -232,14 +247,6 @@ fi
 # Remove write permissions from prmtop and input coordinates
 chmod a-w "$prmtop"
 chmod a-w "$inpcrd"
-
-# Print out informative message about pressure
-if [[ "$pressure" == "" ]]; then
-    if [[ $msm -eq 0 ]]; then
-        echo "INFO: Defaulting to semiisotropic NPT simulation"
-    fi
-    pressure="ntp=3, csurften=3, gamma_ten=0.,"
-fi
 
 # Calculate number of steps to run with given speed and queue jobstep size
 if [[ $hmr == "0" ]]; then
