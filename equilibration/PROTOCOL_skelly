@@ -58,44 +58,58 @@ fi
 
 # Heat from 0 to 100K with restraints 10 on the lipid and protein for 12.5ps
 # in the NVT ensemble, 2.5fs timsetep
-echo "NVT heating... of $SLURM_JOB_NAME"
-run_md "Heat_1" "$rst"
+if [[ ! -f "Heat_1.rst" ]]; then
+    echo "NVT heating... of $SLURM_JOB_NAME"
+    run_md "Heat_1" "$rst"
+fi
 
 # Heat again from 100 to 310K with restraints 10 on the lipid and protein for
 # 125ps in NTP ensemble, 2.5fs timestep
-echo "NTP heating...of $SLURM_JOB_NAME"
-check_previous "Heat_1.mdout" "Heat_1"
-run_md "Heat_2" "Heat_1.rst"
+if [[ ! -f "Heat_2.rst" ]]; then
+    echo "NTP heating...of $SLURM_JOB_NAME"
+    check_previous "Heat_1.mdout" "Heat_1"
+    run_md "Heat_2" "Heat_1.rst"
+fi
 
 # Equilibrate with restraint 5 on protein only for 2ns
 # in the NPT ensemble, 2.5fs timestep
-echo "Restraint 5 equilibration...of $SLURM_JOB_NAME"
-check_previous "Heat_2.mdout" "Heat_2"
-run_md "Eq_1" "Heat_2.rst"
+if [[ -f "Eq_1.rst" ]]; then
+    echo "Restraint 5 equilibration...of $SLURM_JOB_NAME"
+    check_previous "Heat_2.mdout" "Heat_2"
+    run_md "Eq_1" "Heat_2.rst"
+fi
 
 # Decrease restraint on protein to 4 for 2ns
 # in the NPT ensemble, 2.5fs timestep
-echo "Restraint 4 equilibration...of $SLURM_JOB_NAME"
-check_previous "Eq_1.mdout" "Eq_1"
-run_md "Eq_2" "Eq_1.rst"
+if [[ -f "Eq_2.rst" ]]; then
+    echo "Restraint 4 equilibration...of $SLURM_JOB_NAME"
+    check_previous "Eq_1.mdout" "Eq_1"
+    run_md "Eq_2" "Eq_1.rst"
+fi
 
 # Decrease restraint on protein to 3 for 2ns
 # in the NPT ensemble, 2.5fs timestep
-echo "Restraint 3 equilibration...of $SLURM_JOB_NAME"
-check_previous "Eq_2.mdout" "Eq_2"
-run_md "Eq_3" "Eq_2.rst"
+if [[ -f "Eq_3.rst" ]]; then
+    echo "Restraint 3 equilibration...of $SLURM_JOB_NAME"
+    check_previous "Eq_2.mdout" "Eq_2"
+    run_md "Eq_3" "Eq_2.rst"
+fi
 
 # Decrease restraint on protein to 2 for 2ns
 # in the NPT ensemble, 2.5fs timestep
-echo "Restraint 2 equilibration...of $SLURM_JOB_NAME"
-check_previous "Eq_3.mdout" "Eq_3"
-run_md "Eq_4" "Eq_3.rst"
+if [[ -f "Eq_4.rst" ]]; then
+    echo "Restraint 2 equilibration...of $SLURM_JOB_NAME"
+    check_previous "Eq_3.mdout" "Eq_3"
+    run_md "Eq_4" "Eq_3.rst"
+fi
 
 # Decrease restraint on protein to 1 for 2ns
 # in the NPT ensemble, 2.5fs timestep
-echo "Restraint 1 equilibration...of $SLURM_JOB_NAME"
-check_previous "Eq_4.mdout" "Eq_4"
-run_md "Eq_5" "Eq_4.rst"
+if [[ -f "Eq_5.rst" ]]; then
+    echo "Restraint 1 equilibration...of $SLURM_JOB_NAME"
+    check_previous "Eq_4.mdout" "Eq_4"
+    run_md "Eq_5" "Eq_4.rst"
+fi
 
 # No-restraint equilibration now done at beginning of production run
 # Ensure the last equilibration completed successfully before quitting

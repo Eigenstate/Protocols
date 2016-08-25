@@ -157,15 +157,12 @@ while [[ "$#" > 0 ]]; do
     ;;
     "--semiisotropic")
     pressure="ntp=3, csurften=3, gamma_ten=0.,"
-    echo "INFO: Using semi-isotropic boundary conditions"
     ;;
     "--isotropic")
     pressure="ntp=1,"
-    echo "INFO: Using isotropic boundary conditions"
     ;;
     "--anisotropic")
     pressure="ntp=2,"
-    echo "INFO: Using anisotropic boundary conditions"
     ;;
     "--resubmit")
     resubmit=1
@@ -400,7 +397,6 @@ if [[ $prodonly -eq 0 ]]; then
         sed -e "s/(DT)/$dt/g" \
             -e "s/(PRESSURE)/$pressure/g"\
             -e "s/(EQWRITE)/$eqwrite/g" \
-            -e "s@(FUNFILE)@$inpdir/functions@g" \
             -e "s/(NSTEPS)/$(echo "scale=0; 2000/$dt" | bc)/g" \
             < "$i" > "$eqdir/$i"
     done
@@ -425,6 +421,7 @@ if [[ $prodonly -eq 0 ]]; then
         -e "s@(P2P)@$inpdir/gpuP2PCheck@" \
         -e "s@(WHOAMI)@$(whoami)@g" \
         -e "s@(REF)@$reference@g" \
+        -e "s@(FUNFILE)@$inpdir/functions@g" \
         < "$inpdir/equilibration/PROTOCOL_skelly" > "$eqdir/PROTOCOL.sh"
 
     chmod +x "$eqdir/PROTOCOL.sh"
