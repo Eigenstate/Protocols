@@ -63,7 +63,7 @@ function start_production {
         < "${inpdir}/production/PROTOCOL_skelly" > "$dir/production/$rev/$r/PROTOCOL.sh"
 
     # Remove titan x constraint if running on owners
-    if [[ "$qos" == "owners" ]]; then
+    if [[ "$part" == "owners" ]]; then
         sed -i -e "/titanx/d" "$dir/production/$rev/$r/PROTOCOL.sh"
     fi
 
