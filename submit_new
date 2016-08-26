@@ -62,6 +62,11 @@ function start_production {
         -e "s@(FUNFILE)@$inpdir/functions@g" \
         < "${inpdir}/production/PROTOCOL_skelly" > "$dir/production/$rev/$r/PROTOCOL.sh"
 
+    # Remove titan x constraint if running on owners
+    if [[ "$qos" == "owners" ]]; then
+        sed -i -e "/titanx/d" "$dir/production/$rev/$r/PROTOCOL.sh"
+    fi
+
     chmod +x "$dir/production/$rev/$r/PROTOCOL.sh"
     # Submit appropriate number of singleton runs
     cd "$dir/production/$rev/$r"
