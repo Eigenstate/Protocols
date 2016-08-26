@@ -20,6 +20,12 @@ function check_previous {
         error=1
     fi
 
+    # Check for existence of mdout
+    if [[ ! -f "$1" ]]; then
+        echo "Mdout not found"
+        error=1
+    fi
+
     # Check for Nans in mdout
     if [[ $(grep -q "NaN" "$1") ]]; then
         echo "NaN in mdout!"
