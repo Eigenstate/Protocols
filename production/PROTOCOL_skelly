@@ -59,14 +59,14 @@ fi
 # in the NPT ensemble, 2.5fs timestep
 if [[ ! -f "Eq_6.rst" ]]; then
     echo "No restraint equilibration for initial run: $SLURM_JOB_NAME"
-    run_md "Eq_6" "(EQDIR)/Eq_5.rst"
+    run_md "Eq_6" "(EQDIR)/Eq_5.rst" "$inpdir/Eq_6.mdin"
 fi
 
 # Simulate at 310K in the NPT ensemble with 2.0fs timestep
 # This run will probably run out of walltime.
 if [[ ! -f "Prod_0.rst" ]]; then
     check_previous "Eq_6.mdout" "Eq_6" # Check equilibration completed successfully
-    run_md "Prod_0" "Eq_6.rst"
+    run_md "Prod_0" "Eq_6.rst" "$inpdir/Prod_(RUNTIME)h.mdin"
 fi
 
 # Given final equilibration and initial production run, continue from here

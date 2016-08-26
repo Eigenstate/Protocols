@@ -73,7 +73,7 @@ fi
 
 # Equilibrate with restraint 5 on protein only for 2ns
 # in the NPT ensemble, 2.5fs timestep
-if [[ -f "Eq_1.rst" ]]; then
+if [[ ! -f "Eq_1.rst" ]]; then
     echo "Restraint 5 equilibration...of $SLURM_JOB_NAME"
     check_previous "Heat_2.mdout" "Heat_2"
     run_md "Eq_1" "Heat_2.rst"
@@ -81,7 +81,7 @@ fi
 
 # Decrease restraint on protein to 4 for 2ns
 # in the NPT ensemble, 2.5fs timestep
-if [[ -f "Eq_2.rst" ]]; then
+if [[ ! -f "Eq_2.rst" ]]; then
     echo "Restraint 4 equilibration...of $SLURM_JOB_NAME"
     check_previous "Eq_1.mdout" "Eq_1"
     run_md "Eq_2" "Eq_1.rst"
@@ -89,7 +89,7 @@ fi
 
 # Decrease restraint on protein to 3 for 2ns
 # in the NPT ensemble, 2.5fs timestep
-if [[ -f "Eq_3.rst" ]]; then
+if [[ ! -f "Eq_3.rst" ]]; then
     echo "Restraint 3 equilibration...of $SLURM_JOB_NAME"
     check_previous "Eq_2.mdout" "Eq_2"
     run_md "Eq_3" "Eq_2.rst"
@@ -97,7 +97,7 @@ fi
 
 # Decrease restraint on protein to 2 for 2ns
 # in the NPT ensemble, 2.5fs timestep
-if [[ -f "Eq_4.rst" ]]; then
+if [[ ! -f "Eq_4.rst" ]]; then
     echo "Restraint 2 equilibration...of $SLURM_JOB_NAME"
     check_previous "Eq_3.mdout" "Eq_3"
     run_md "Eq_4" "Eq_3.rst"
@@ -105,7 +105,7 @@ fi
 
 # Decrease restraint on protein to 1 for 2ns
 # in the NPT ensemble, 2.5fs timestep
-if [[ -f "Eq_5.rst" ]]; then
+if [[ ! -f "Eq_5.rst" ]]; then
     echo "Restraint 1 equilibration...of $SLURM_JOB_NAME"
     check_previous "Eq_4.mdout" "Eq_4"
     run_md "Eq_5" "Eq_4.rst"
