@@ -15,7 +15,7 @@ function check_previous {
     error=0
 
     # Check for NaNs in mdinfo
-    if [[ $(grep -q "NaN" "mdinfo") ]]; then
+    if $(grep -q "NaN" "mdinfo"); then
         echo "NaN in mdinfo!"
         error=1
     fi
@@ -26,19 +26,39 @@ function check_previous {
         error=1
     fi
 
+    # Check for errors in previous trajectory
+    if $(grep -q "NaN(s) found in input coordinates" "$1"); then
+        echo "NaN in input coordinates"
+        error=2
     # Check for Nans in mdout
-    if [[ $(grep -q "NaN" "$1") ]]; then
+    elif $(grep -q "NaN" "$1"); then
         echo "NaN in mdout!"
         error=1
     fi
 
     # Check for cuda error as last line
-    if [[ $(tail -n 1 "${rev}slurm.out" | grep -qi "cuda") ]]; then
+    if $(tail -n 1 "${rev}slurm.out" | grep -qi "cuda"); then
         echo "Cuda crash!"
         error=1
     fi
 
-    if [[ "$error" -eq 1 ]]; then
+    # Check for crash caused by previous coordinates
+    # I'm still deciding how to do this
+    # TODO
+
+
+    # Delete previous one
+    if [[ "$error" -eq 2 ]]; then
+        if [[ "$2" == "Prod_0" ]]; then
+            prev="Eq_6"
+        else
+            prev="Prod_$(($(echo "$2" | awk -F '_' '{print $NF}')-1))"
+        fi
+        echo "Deleting previous: $prev"
+        rm -f "$prev."*
+    fi
+
+    if [[ "$error" -ne 0 ]]; then
         echo "Deleting $2"
         rm -f "$2."*
 
@@ -47,7 +67,9 @@ function check_previous {
         else
             echo "1" > "failure"
         fi
+        return 1
     fi
+
     rm -f "failure"
     return 0
 }
