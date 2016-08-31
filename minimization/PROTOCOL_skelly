@@ -3,7 +3,7 @@
 #SBATCH --partition=(PART) --qos=(QOS)
 #SBATCH --tasks=8
 #SBATCH --output=(REV)slurm.out --open-mode=append
-#SBATCH --mail-user=(WHOAMI)@stanford.edu --mail-type=END,FAIL
+#SBATCH --mail-user=(WHOAMI)@stanford.edu --mail-type=FAIL
 #SBATCH --job-name=(NAM)_min
 #
 #=====================================================================
