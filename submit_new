@@ -367,6 +367,7 @@ if [[ $prodonly -eq 0 ]]; then
         -e "s@(DIR)@$dir@g" \
         -e "s@(WHOAMI)@$(whoami)@g" \
         -e "s@(REF)@$inpcrd@g" \
+        -e "s@(FUNFILE)@$inpdir/functions@g" \
         < "$inpdir/minimization/PROTOCOL_skelly" > "$mindir/PROTOCOL.sh"
 
     chmod +x "$mindir/PROTOCOL.sh"

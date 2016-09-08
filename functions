@@ -99,3 +99,25 @@ function run_md {
 
 #==============================================================================
 
+# Runs a single step, with 8 CPUs. Won't save a trajectory (for minimization)
+# $1 = step name
+# $2 = restart file
+# $3 = input file. If not provided, defaults to $inpdir/$1.mdin
+# Example:
+#   run_md "min1" "init.rst" "$inpdir/01_min.mdin"
+function run_md_min {
+    if [[ -z $3 ]]; then
+        inp="$inpdir/${1}.mdin"
+    else
+        inp=$3
+    fi
+
+    $MPI_HOME/bin/mpirun -np 8 --bind-to socket $AMBERHOME/bin/pmemd.MPI \
+                         -O \
+                         -i "$inp" \
+                         -o "${1}.mdout" -p "$prmtop" -c "$2" \
+                         -r "${1}.rst" -ref "$ref"
+    chmod a-w "$1".{mdout,rst,nc}
+}
+
+#==============================================================================

@@ -33,30 +33,33 @@ cd "$inpdir"
 # Exit if any command fails
 set -e
 
+# Source the common run functions
+. (FUNFILE)
+
 # Load necessary modules
 echo "$(date) on machine $(hostname)"
 source "/share/PI/rondror/software/amber_dev/setup_amber.sh"
 
 # Minimize holding the protein really fixed and the lipid mostly fixed
-echo "First minimization...of $SLURM_JOB_NAME"
-$MPI_HOME/bin/mpirun -np 8 --bind-to socket $AMBERHOME/bin/pmemd.MPI -O -i "$inpdir/01_min.mdin" \
-                                                    -o "min1.mdout" -p "$prmtop" \
-                                                    -c "$inpcrd" -r "min1.rst" -ref "$ref"
-chmod a-w "min1"*
+if [[ ! -f "min1.rst" ]]; then
+    echo "First minimization...of $SLURM_JOB_NAME"
+    run_md_min "min1" "$inpcrd" "$inpdir/01_min.mdin"
+fi
 
 # Minimize with slightly weaker restraints
-echo "Second minimization...of $SLURM_JOB_NAME"
-$MPI_HOME/bin/mpirun -np 8 --bind-to socket  $AMBERHOME/bin/pmemd.MPI -O -i "$inpdir/02_min.mdin" \
-                                                    -o "min2.mdout" -p "$prmtop" \
-                                                    -c "min1.rst" -r "min2.rst" -ref "$ref"
-chmod a-w "min2"*
+if [[ ! -f "min2.rst" ]]; then
+    echo "Second minimization...of $SLURM_JOB_NAME"
+    check_previous "min1.mdout" "min1"
+    run_md_min "min2" "min1.rst" "$inpdir/02_min.mdin" 
+fi
 
 # Minimize with restraint weight 1 on non solvent non   
-echo "Third minimization...of $SLURM_JOB_NAME"
-$MPI_HOME/bin/mpirun -np 8 --bind-to socket $AMBERHOME/bin/pmemd.MPI -O -i "$inpdir/03_min.mdin" \
-                                                    -o "min3.mdout" -p "$prmtop" \
-                                                    -c "min2.rst" -r "min3.rst" -ref "$ref"
-chmod a-w "min3"*
+if [[ ! -f "min3.rst" ]]; then
+    echo "Third minimization...of $SLURM_JOB_NAME"
+    check_previous "min2.mdout" "min2"
+    run_md_min "min3" "min2.rst" "$inpdir/03_min.mdin"
+fi
 
 echo "Done with $SLURM_JOB_NAME"
 date
+
