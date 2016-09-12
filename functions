@@ -39,13 +39,12 @@ function check_previous {
     # Check for cuda error as last line
     if $(tail -n 1 "${rev}slurm.out" | grep -qi "cuda"); then
         echo "Cuda crash!"
-        error=1
+        error=2
     fi
 
     # Check for crash caused by previous coordinates
     # I'm still deciding how to do this
     # TODO
-
 
     # Delete previous one
     if [[ "$error" -eq 2 ]]; then
@@ -61,6 +60,7 @@ function check_previous {
     if [[ "$error" -ne 0 ]]; then
         echo "Deleting $2"
         rm -f "$2."*
+        rm -f "mdinfo"
 
         if [[ -f "failure" ]]; then
             echo "$(($(cat "failure")+1))" > "failure"
@@ -117,7 +117,7 @@ function run_md_min {
                          -i "$inp" \
                          -o "${1}.mdout" -p "$prmtop" -c "$2" \
                          -r "${1}.rst" -ref "$ref"
-    chmod a-w "$1".{mdout,rst,nc}
+    chmod a-w "$1".{mdout,rst}
 }
 
 #==============================================================================
