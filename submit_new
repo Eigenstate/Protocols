@@ -35,7 +35,7 @@ function start_production {
       echo "Replicate: $1"
   fi
   r="$1"
-  
+ 
   if [[ -z $2 ]]; then
     depline="singleton"
   else
@@ -60,6 +60,7 @@ function start_production {
         -e "s@(RUNTIME)@$runtime@g" \
         -e "s@(REF)@$reference@g" \
         -e "s@(FUNFILE)@$inpdir/functions@g" \
+        -e "s@(GPUS)@$ngpus@g" \
         < "${inpdir}/production/PROTOCOL_skelly" > "$dir/production/$rev/$r/PROTOCOL.sh"
 
     # Remove titan x constraint if running on owners
@@ -109,6 +110,7 @@ hmr=0
 pressure=""
 resubmit=0
 msm=0
+ngpus=2
 
 # Parse input arguments
 while [[ "$#" > 0 ]]; do
@@ -191,6 +193,7 @@ if [[ $msm -ne 0 ]]; then
     #    usage
     fi
     rep=$msm
+    ngpus=1
 fi
 
 # Check for mandatory options
@@ -428,6 +431,7 @@ if [[ $prodonly -eq 0 ]]; then
         -e "s@(WHOAMI)@$(whoami)@g" \
         -e "s@(REF)@$reference@g" \
         -e "s@(FUNFILE)@$inpdir/functions@g" \
+        -e "s@(GPUS)@$ngpus@g" \
         < "$inpdir/equilibration/PROTOCOL_skelly" > "$eqdir/PROTOCOL.sh"
 
     chmod +x "$eqdir/PROTOCOL.sh"

@@ -15,9 +15,11 @@ function check_previous {
     error=0
 
     # Check for NaNs in mdinfo
-    if $(grep -q "NaN" "mdinfo"); then
-        echo "NaN in mdinfo!"
-        error=1
+    if [[ -f "mdinfo" ]]; then
+        if $(grep -q "NaN" "mdinfo"); then
+            echo "NaN in mdinfo!"
+            error=1
+        fi
     fi
 
     # Check for existence of mdout
@@ -54,12 +56,12 @@ function check_previous {
             prev="Prod_$(($(echo "$2" | awk -F '_' '{print $NF}')-1))"
         fi
         echo "Deleting previous: $prev"
-        rm -f "$prev."*
+        rm -f "$prev.{nc,mdout.rst}"
     fi
 
     if [[ "$error" -ne 0 ]]; then
         echo "Deleting $2"
-        rm -f "$2."*
+        rm -f "$2.{nc,mdout,rst}"
         rm -f "mdinfo"
 
         if [[ -f "failure" ]]; then
@@ -89,7 +91,8 @@ function run_md {
         inp=$3
     fi
 
-    $MPI_HOME/bin/mpirun -np 2 --bind-to socket $AMBERHOME/bin/pmemd.cuda.MPI \
+    $MPI_HOME/bin/mpirun -np $SLURM_NTASKS_PER_SOCKET \
+                         --bind-to socket $AMBERHOME/bin/pmemd.cuda.MPI \
                          -O \
                          -i "$inp" \
                          -o "${1}.mdout" -p "$prmtop" -c "$2" \

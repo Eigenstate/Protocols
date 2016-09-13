@@ -2,8 +2,8 @@
 #SBATCH --time=(RUNTIME):00:00
 #SBATCH --partition=(PART)
 #SBATCH --qos=(QOS)
-#SBATCH --ntasks-per-socket=2 --gres=gpu:gtx:2 --tasks=2
-#SBATCH --constraint="titanx"
+#SBATCH --ntasks-per-socket=(GPUS) --gres=gpu:(GPUS) --tasks=(GPUS)
+##SBATCH --constraint="titanx"
 #SBATCH --gres-flags=enforce-binding
 #SBATCH --output=(REV)slurm.out --open-mode=append
 #SBATCH --mail-user=robin@robinbetz.com
@@ -43,12 +43,14 @@ echo "$(date) on machine $(hostname)"
 source "/share/PI/rondror/software/amber_dev/setup_amber.sh"
 
 # Check for P2P GPUs. Fail if not
-p2p=$((P2P))
-if [[ "$p2p" == *"NO"* ]]; then
-  echo "ERROR! Didn't get P2P GPUs!"
-  echo "HOSTNAME             = $HOSTNAME"
-  echo "CUDA VISIBLE DEVICES = $CUDA_VISIBLE_DEVICES"
-  exit 1
+if [[ "$SLURM_NTASKS_PER_SOCKET" -gt 1 ]]; then
+    p2p=$((P2P))
+    if [[ "$p2p" == *"NO"* ]]; then
+      echo "ERROR! Didn't get P2P GPUs!"
+      echo "HOSTNAME             = $HOSTNAME"
+      echo "CUDA VISIBLE DEVICES = $CUDA_VISIBLE_DEVICES"
+      exit 1
+    fi
 fi
 
 # Source the common run functions
