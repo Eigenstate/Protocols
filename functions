@@ -35,7 +35,7 @@ function check_previous {
     # Check for Nans in mdout
     elif $(grep -q "NaN" "$1"); then
         echo "NaN in mdout!"
-        error=1
+        error=2
     fi
 
     # Check for cuda error as last line
