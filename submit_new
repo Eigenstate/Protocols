@@ -6,6 +6,7 @@ function usage {
   echo "       -n <# replicates> [-c <inpcrd>]"
   echo "       [--restraints <restraints>] [--production]"
   echo "       [--hmr] [--isotropic] [--msm <repnum>]"
+  echo "       [--gpus <n>]"
   echo
   echo "<revision> = Simulation revision to write"
   echo "<directory> = Root directory of simulation. Defaults to \$PWD"
@@ -21,7 +22,8 @@ function usage {
   echo "--anisotropic for anisotropic pressure control"
   echo "--semiisotropic for semiisotropic pressure control"
   echo "--resubmit to hook into resubmit script"
-  echo "--msm for MSM mode: no output, and no minimization. Specify replicate number."
+  echo "--msm <rep> for MSM mode: no output, and no minimization. Specify replicate number."
+  echo "--gpus <n> for number of GPUs per simulation. Defaults to 2"
   exit 1
 }
 
@@ -178,6 +180,10 @@ while [[ "$#" > 0 ]]; do
     msm="$2"
     shift
     ;;
+    "--gpus")
+    ngpus="$2"
+    shift
+    ;;
     *)
     usage
     ;;
@@ -193,7 +199,6 @@ if [[ $msm -ne 0 ]]; then
     #    usage
     fi
     rep=$msm
-    ngpus=1
 fi
 
 # Check for mandatory options
