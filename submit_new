@@ -254,6 +254,13 @@ else
     exit 1
 fi
 
+# Set the equilibration time depending on the number of GPUs
+if [[ "$ngpus" == "1" ]]; then
+    eqtime=12
+else
+    eqtime=8
+fi
+
 # Remove write permissions from prmtop and input coordinates
 chmod a-w "$prmtop"
 chmod a-w "$inpcrd"
@@ -437,6 +444,7 @@ if [[ $prodonly -eq 0 ]]; then
         -e "s@(REF)@$reference@g" \
         -e "s@(FUNFILE)@$inpdir/functions@g" \
         -e "s@(GPUS)@$ngpus@g" \
+        -e "s@(RUNTIME)@$eqtime@g" \
         < "$inpdir/equilibration/PROTOCOL_skelly" > "$eqdir/PROTOCOL.sh"
 
     chmod +x "$eqdir/PROTOCOL.sh"

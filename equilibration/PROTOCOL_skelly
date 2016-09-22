@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --time=08:00:00
+#SBATCH --time=(RUNTIME):00:00
 #SBATCH --partition=(PART)
 #SBATCH --qos=(QOS)
 #SBATCH --ntasks-per-socket=(GPUS) --gres=gpu:(GPUS) --tasks=(GPUS)
