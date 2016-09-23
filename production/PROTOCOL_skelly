@@ -3,7 +3,7 @@
 #SBATCH --partition=(PART)
 #SBATCH --qos=(QOS)
 #SBATCH --ntasks-per-socket=(GPUS) --gres=gpu:(GPUS) --tasks=(GPUS)
-##SBATCH --constraint="titanx"
+#SBATCH --constraint="titanx"
 #SBATCH --gres-flags=enforce-binding
 #SBATCH --output=(REV)slurm.out --open-mode=append
 #SBATCH --mail-user=robin@robinbetz.com
