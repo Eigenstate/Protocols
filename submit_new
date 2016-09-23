@@ -261,6 +261,13 @@ else
     eqtime=8
 fi
 
+# Set up directory structure for equilibration
+if [[ $msm -eq 0 ]]; then
+    eqdir="$dir/equilibration/$rev"
+else # MSM case gets an equilibration for this replicate too
+    eqdir="$dir/equilibration/$rev/$rep"
+fi
+
 # Remove write permissions from prmtop and input coordinates
 chmod a-w "$prmtop"
 chmod a-w "$inpcrd"
@@ -393,11 +400,6 @@ fi
 
 if [[ $prodonly -eq 0 ]]; then
     # EQUILIBRATION
-    if [[ $msm -eq 0 ]]; then
-        eqdir="$dir/equilibration/$rev"
-    else # MSM case gets an equilibration for this replicate too
-        eqdir="$dir/equilibration/$rev/$rep"
-    fi
 
     # Create heating mdin files. These are a bit different than other
     # equlibration files so do them separately
