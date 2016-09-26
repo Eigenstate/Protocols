@@ -73,10 +73,13 @@ fi
 
 # Given final equilibration and initial production run, continue from here
 last=$(ls -1 $inpdir/$rep/Prod*rst | sed -E -e "s@Prod_?@@" -e "s@.rst@@" -e "s@$inpdir/$rep/@@g" | sort -n | tail -n 1)
-rst="$inpdir/$rep/Prod_${last}.rst"
 
 # Check for successful completion
-check_previous "Prod_${last}.mdout" "Prod_${last}"
+check_previous "Prod_${last}.mdout" "Prod_${last}" nofail
+
+# Recalculate last in case it changed
+last=$(ls -1 $inpdir/$rep/Prod*rst | sed -E -e "s@Prod_?@@" -e "s@.rst@@" -e "s@$inpdir/$rep/@@g" | sort -n | tail -n 1)
+rst="$inpdir/$rep/Prod_${last}.rst"
 
 # Remove write permissions for the previously completed trajectory
 # Only if it completed successfully

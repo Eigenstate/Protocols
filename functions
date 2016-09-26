@@ -7,11 +7,17 @@
 # Check for last run successful completion
 # $1 = mdout file
 # $2 = skeleton name to delete
+# $3 = whether or not to return an error
 # Example:
 #   check_previous "Prod_1.mdout" "Prod_1"
 # Deletes previous ones if error, kills self
 # Creates a file called "failure" if a failure occured
 function check_previous {
+    if [[ -z "$3" ]]; then
+        fail=0
+    else
+        fail=1
+    fi
     error=0
 
     # Check for NaNs in mdinfo
@@ -43,8 +49,8 @@ function check_previous {
         echo "Cuda crash!"
         error=2
     fi
-# Check for crash caused by previous coordinates
-    # I'm still deciding how to do this
+
+    # Check for crash caused by previous coordinates
     # TODO
 
     # Delete previous one
@@ -55,12 +61,12 @@ function check_previous {
             prev="Prod_$(($(echo "$2" | awk -F '_' '{print $NF}')-1))"
         fi
         echo "Deleting previous: $prev"
-        rm -f "$prev.{nc,mdout.rst}"
+        rm -f "$prev".{nc,mdout.rst}
     fi
 
     if [[ "$error" -ne 0 ]]; then
         echo "Deleting $2"
-        rm -f "$2.{nc,mdout,rst}"
+        rm -f "$2".{nc,mdout,rst}
         rm -f "mdinfo"
 
         if [[ -f "failure" ]]; then
@@ -68,7 +74,8 @@ function check_previous {
         else
             echo "1" > "failure"
         fi
-        return 1
+
+        return $fail
     fi
 
     rm -f "failure"
