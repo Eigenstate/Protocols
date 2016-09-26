@@ -35,9 +35,9 @@ set -e
 
 # Source the common run functions
 . (FUNFILE)
+print_node_jobs
 
 # Load necessary modules
-echo "$(date) on machine $(hostname)"
 source "/share/PI/rondror/software/amber_dev/setup_amber.sh"
 
 # Minimize holding the protein really fixed and the lipid mostly fixed

@@ -40,8 +40,11 @@ cd "$inpdir"
 set -e
 
 # Load necessary modules
-echo "$(date) on machine $(hostname)"
 source "/share/PI/rondror/software/amber_dev/setup_amber.sh"
+
+# Source the common run functions
+. (FUNFILE)
+print_node_jobs
 
 # Check for P2P GPUs. Fail if not
 if [[ "$SLURM_NTASKS_PER_SOCKET" -gt 1 ]]; then
@@ -53,9 +56,6 @@ if [[ "$SLURM_NTASKS_PER_SOCKET" -gt 1 ]]; then
       exit 1
     fi
 fi
-
-# Source the common run functions
-. (FUNFILE)
 
 # Heat from 0 to 100K with restraints 10 on the lipid and protein for 12.5ps
 # in the NVT ensemble, 2.5fs timsetep

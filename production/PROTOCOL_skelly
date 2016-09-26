@@ -39,8 +39,11 @@ prmtop="(PRMTOP)"
 ref="(REF)"
 
 # Load necessary modules
-echo "$(date) on machine $(hostname)"
 source "/share/PI/rondror/software/amber_dev/setup_amber.sh"
+
+# Source the common run functions and print some info
+. (FUNFILE)
+print_node_jobs
 
 # Check for P2P GPUs. Fail if not
 if [[ "$SLURM_NTASKS_PER_SOCKET" -gt 1 ]]; then
@@ -52,9 +55,6 @@ if [[ "$SLURM_NTASKS_PER_SOCKET" -gt 1 ]]; then
       exit 1
     fi
 fi
-
-# Source the common run functions
-. (FUNFILE)
 
 # Do last equilibration step in each replicate
 # Remove restraints entirely, equilibrate for 5ns

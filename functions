@@ -43,8 +43,7 @@ function check_previous {
         echo "Cuda crash!"
         error=2
     fi
-
-    # Check for crash caused by previous coordinates
+# Check for crash caused by previous coordinates
     # I'm still deciding how to do this
     # TODO
 
@@ -121,6 +120,17 @@ function run_md_min {
                          -o "${1}.mdout" -p "$prmtop" -c "$2" \
                          -r "${1}.rst" -ref "$ref"
     chmod a-w "$1".{mdout,rst}
+}
+
+#==============================================================================
+
+# Prints out a summary of other things running on this node
+# Hopefully this will help me debug why things are crashing all the time
+function print_node_jobs {
+    echo "-------------------------------"
+    hn=${HOSTNAME%.local}
+    echo "$hn   $(date)"
+    squeue -w "$hn" -O "gres,numcpus,partition,username"
 }
 
 #==============================================================================
