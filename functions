@@ -14,9 +14,9 @@
 # Creates a file called "failure" if a failure occured
 function check_previous {
     if [[ -z "$3" ]]; then
-        fail=0
-    else
         fail=1
+    else
+        fail=0
     fi
     error=0
 

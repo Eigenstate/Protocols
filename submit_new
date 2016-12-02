@@ -230,13 +230,7 @@ if [[ $prodonly -eq 0 && ! -e "$inpcrd" ]]; then
     exit 1
 fi
 
-# Check queue selected is valid and set variables accordingly
-if [[ "$qos" == "owners"  && "$prodonly" == "0" ]]; then
-    echo "WARNING: Won't minimize or equilibrate on owners."
-    echo "         Setting queue to rondror instead."
-    qos="rondror"
-fi
-
+# Set runtime and QOS according to allowed runtime
 if [[ "$qos" == "rondror" || "$qos" == "rondror_high" ]]; then
     part="rondror"
     runtime=8
@@ -252,6 +246,13 @@ else
     echo "ERROR: Invalid queue choice '$qos'" 
     usage
     exit 1
+fi
+
+# Set the queue for minimization
+minqos="$qos"
+if [[ "$qos" == "owners"  && "$prodonly" == "0" ]]; then
+    echo "Minimizing on rondror_high"
+    minqos="rondror_high"
 fi
 
 # Set the equilibration time depending on the number of GPUs
@@ -347,11 +348,20 @@ fi
 # Check that the revisions won't overwrite anything
 # Don't check for production files since they are auto-appended
 if [[ $prodonly == "0" ]]; then
-    if [[ -e "$dir/minimization/$rev/min1.mdout" || \
-          -e "$dir/equilibration/$rev/Eq_1.mdout" || \
-          -e "$dir/equilibration/$rev/$rep/Eq_1.mdout" ]]; then
-        echo "ERROR: Output files found from revision $rev. Won't overwrite."
-        exit 1
+    if [[ $msm -eq 0 ]]; then
+        if [[ -e "$dir/minimization/$rev/min1.mdout" || \
+              -e "$dir/equilibration/$rev/Eq_1.mdout" || \
+              -e "$dir/equilibration/$rev/$rep/Eq_1.mdout" ]]; then
+            echo "ERROR: Output files found from revision $rev. Won't overwrite."
+            exit 1
+        fi
+    else
+        if [[ -e "$dir/minimizatino/$rev/$msm/min1.mdout" || \
+              -e "$dir/equilibration/$rev/msm/Eq_1.mdout" || \
+              -e "$dir/equilibration/$rev/$msm/Eq_1.mdout" ]]; then
+            echo "ERROR: Output files from revision $rev, rep $msm. Won't overwrite."
+            exit 1
+        fi
     fi
 fi
 if [[ $msm -eq 0 ]]; then
@@ -383,7 +393,7 @@ if [[ $prodonly -eq 0 ]]; then
         -e "s@(INPCRD)@$inpcrd@g" \
         -e "s@(NAM)@$name@g" \
         -e "s@(NOW)@$(date)@g" \
-        -e "s@(QOS)@$qos@g" \
+        -e "s@(QOS)@$minqos@g" \
         -e "s@(PART)@$part@g" \
         -e "s@(INP)@$mindir@g" \
         -e "s@(DIR)@$dir@g" \
