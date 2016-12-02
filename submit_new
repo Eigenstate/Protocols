@@ -249,10 +249,10 @@ else
 fi
 
 # Set the queue for minimization
-minqos="$qos"
+minpart="$part"
 if [[ "$qos" == "owners"  && "$prodonly" == "0" ]]; then
     echo "Minimizing on rondror_high"
-    minqos="rondror_high"
+    minpart="rondror_high"
 fi
 
 # Set the equilibration time depending on the number of GPUs
@@ -393,8 +393,8 @@ if [[ $prodonly -eq 0 ]]; then
         -e "s@(INPCRD)@$inpcrd@g" \
         -e "s@(NAM)@$name@g" \
         -e "s@(NOW)@$(date)@g" \
-        -e "s@(QOS)@$minqos@g" \
-        -e "s@(PART)@$part@g" \
+        -e "s@(QOS)@$qos@g" \
+        -e "s@(PART)@$minpart@g" \
         -e "s@(INP)@$mindir@g" \
         -e "s@(DIR)@$dir@g" \
         -e "s@(WHOAMI)@$(whoami)@g" \
