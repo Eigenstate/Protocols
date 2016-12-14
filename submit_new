@@ -73,7 +73,7 @@ function start_production {
     chmod +x "$dir/production/$rev/$r/PROTOCOL.sh"
     # Submit appropriate number of singleton runs
     cd "$dir/production/$rev/$r"
-    for ((i=0;i<$((nruns-1));i++)); do
+    for ((i=0;i<${nruns};i++)); do
       prodjob+=($(sbatch --dependency="$depline" "PROTOCOL.sh" | awk '{print $4}'))
     done
     cd - > /dev/null
@@ -250,9 +250,10 @@ fi
 
 # Set the queue for minimization
 minpart="$part"
-if [[ "$qos" == "owners"  && "$prodonly" == "0" ]]; then
-    echo "Minimizing on rondror_high"
-    minpart="rondror_high"
+minqos="$qos"
+if [[ "$part" == "owners" ]]; then
+    minpart="rondror"
+    minqos="rondror_high"
 fi
 
 # Set the equilibration time depending on the number of GPUs
@@ -393,7 +394,7 @@ if [[ $prodonly -eq 0 ]]; then
         -e "s@(INPCRD)@$inpcrd@g" \
         -e "s@(NAM)@$name@g" \
         -e "s@(NOW)@$(date)@g" \
-        -e "s@(QOS)@$qos@g" \
+        -e "s@(QOS)@$minqos@g" \
         -e "s@(PART)@$minpart@g" \
         -e "s@(INP)@$mindir@g" \
         -e "s@(DIR)@$dir@g" \
