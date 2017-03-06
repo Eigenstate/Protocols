@@ -3,12 +3,84 @@
 # Submits as many jobs as it takes to get the requested
 # resources from owners
 
+# Parse command line arguments
 if [[ $# != 2 ]]; then
+    echo
     echo "Usage: cujo <cpus> <gpus>"
+    echo "Specify number of CPUs and GPUs to free up"
+    exit 1
+fi
+cpus=$1
+gpus=$2
 
-killids=( $(squeue -w "gpu-9-[6-9],gpu-15-[1-8],gpu-28-[1-2],gpu-29-[1-8]" \
+# Obtain the jobids of all owners jobs running on our nodes
+killids=( $(squeue --noheader \
+                 -w "gpu-9-[6-9],gpu-15-[1-8],gpu-28-[1-2],gpu-29-[1-8]" \
                  -t "RUNNING" \
                  -p "owners" \
                  -O "jobid") )
+echo "Found ${#killids[@]} owners jobs"
 
-echo "Got ${#killids[@]} jobs"
+# Initialize counters
+freed_cpus=0
+freed_gpus=0
+fakeids=()
+
+# Kill all the jobs necessary
+echo "Creating fake jobs...."
+while [[ ${#killids[@]} -gt 0 ]] && \
+      ( [[ $freed_cpus -lt $cpus ]] || \
+      [[ $freed_gpus -lt $gpus ]] ); do
+
+    # Choose an owners job to kill
+    tokill=${killids[0]}
+
+    # Figure out resources this job uses
+    # Minimize squeue commands since they're slow
+    jobinfo=$(squeue --noheader -j $tokill -O "gres,numcpus,nodelist")
+    tmpgpus=$(echo "$jobinfo" | awk '{print $1}')
+    tmpgpus=${tmpgpus#gpu:}
+    tmpcpus=$(echo "$jobinfo" | awk '{print $2}')
+    tmpnodes=$(echo "$jobinfo" | awk '{print $3}')
+
+    # Start a fake job on this node with these resources
+    fakeids+=($(echo -e "#!/bin/bash\n/usr/bin/yes" | \
+                sbatch --job-name="quick_calc" \
+                       --output=/dev/null \
+                       --tasks=$tmpcpus \
+                       --cpus-per-task=1 \
+                       --gres=gpu:$tmpgpus \
+                       --partition=rondror \
+                       --qos=rondror_high \
+                       --nodelist=$tmpnodes | awk '{print $4}'))
+                       #/usr/bin/yes))
+
+    echo "  Freed: $tmpcpus CPUs  $tmpgpus GPUs on node(s) $tmpnodes by killing $tokill"
+
+    # Update counters and array of jobs
+    killids=("${killids[@]:1}")
+    ((freed_gpus+=$tmpgpus))
+    ((freed_cpus+=$tmpcpus))
+done
+
+# Wait a moment for jobs to get queued and running
+echo "Waiting for jobs to start..."
+function join { local IFS="$1"; shift; echo "$*"; }
+while [[ $(squeue --noheader -j $(join "," ${fakeids[@]}) -t RUNNING | wc -l) -ne ${#fakeids[@]} ]]; do
+    sleep 1
+done
+
+# Now kill all of the fake jobs, leaving lovely empty resources
+echo "Killing fake jobs..."
+for jobid in "${fakeids[@]}"; do
+   scancel $jobid
+done 
+
+echo 
+printf "   / \__              ------------------------------------- \n"
+printf "  (    @\___         | I killed        %-5s  owners jobs |\n" ${#fakeids[@]}
+printf "  /         O        | Freed CPUs:     %-5s               |\n" $freed_cpus
+printf " /   (_____/        <  Freed GPUs:     %-5s               |\n" $freed_gpus
+printf "/_____/   U           ------------------------------------- \n"
+echo
+
