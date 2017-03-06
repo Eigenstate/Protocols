@@ -75,6 +75,7 @@ function start_production {
     cd "$dir/production/$rev/$r"
     for ((i=0;i<${nruns};i++)); do
       prodjob+=($(sbatch --dependency="$depline" "PROTOCOL.sh" | awk '{print $4}'))
+      sleep 0.5
     done
     cd - > /dev/null
 
