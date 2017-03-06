@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# Submits as many jobs as it takes to get the requested
+# resources from owners
+
+if [[ $# != 2 ]]; then
+    echo "Usage: cujo <cpus> <gpus>"
+
+killids=( $(squeue -w "gpu-9-[6-9],gpu-15-[1-8],gpu-28-[1-2],gpu-29-[1-8]" \
+                 -t "RUNNING" \
+                 -p "owners" \
+                 -O "jobid") )
+
+echo "Got ${#killids[@]} jobs"
