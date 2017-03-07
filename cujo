@@ -53,7 +53,6 @@ while [[ ${#killids[@]} -gt 0 ]] && \
                        --partition=rondror \
                        --qos=rondror_high \
                        --nodelist=$tmpnodes | awk '{print $4}'))
-                       #/usr/bin/yes))
 
     echo "  Freed: $tmpcpus CPUs  $tmpgpus GPUs on node(s) $tmpnodes by killing $tokill"
 
@@ -64,7 +63,7 @@ while [[ ${#killids[@]} -gt 0 ]] && \
 done
 
 # Wait a moment for jobs to get queued and running
-echo "Waiting for jobs to start..."
+echo "Waiting for all fake jobs to start..."
 function join { local IFS="$1"; shift; echo "$*"; }
 while [[ $(squeue --noheader -j $(join "," ${fakeids[@]}) -t RUNNING | wc -l) -ne ${#fakeids[@]} ]]; do
     sleep 1
