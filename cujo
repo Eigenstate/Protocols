@@ -39,7 +39,8 @@ while [[ ${#killids[@]} -gt 0 ]] && \
     # Minimize squeue commands since they're slow
     jobinfo=$(squeue --noheader -j $tokill -O "gres,numcpus,nodelist")
     tmpgpus=$(echo "$jobinfo" | awk '{print $1}')
-    tmpgpus=${tmpgpus#gpu:}
+    tmpgpus=${tmpgpus#${tmpgpus%:*}}
+    tmpgpus=${tmpgpus#:}
     tmpcpus=$(echo "$jobinfo" | awk '{print $2}')
     tmpnodes=$(echo "$jobinfo" | awk '{print $3}')
 
