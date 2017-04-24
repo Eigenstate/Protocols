@@ -57,6 +57,10 @@ function check_previous {
     if [[ "$error" -eq 2 ]]; then
         if [[ "$2" == "Prod_0" ]]; then
             prev="Eq_6"
+        elif [[ $2 == Eq_6 ]]; then
+            rm -f "Eq_6".{nc,mdout.rst}
+            rm -f "mdinfo"
+            return $fail
         else
             prev="Prod_$(($(echo "$2" | awk -F '_' '{print $NF}')-1))"
         fi
@@ -103,7 +107,10 @@ function run_md {
                          -i "$inp" \
                          -o "${1}.mdout" -p "$prmtop" -c "$2" \
                          -r "${1}.rst" -ref "$ref" -x "${1}.nc"
-    chmod a-w "$1".{mdout,rst,nc}
+    # Remove write permissions but don't fail if you can't
+    set +e
+    chmod a-w -f "$1".{mdout,rst,nc}
+    set -e
 }
 
 #==============================================================================
@@ -126,7 +133,10 @@ function run_md_min {
                          -i "$inp" \
                          -o "${1}.mdout" -p "$prmtop" -c "$2" \
                          -r "${1}.rst" -ref "$ref"
-    chmod a-w "$1".{mdout,rst}
+    # Remove write permissions but don't fail if you can't
+    set +e
+    chmod a-w -f "$1".{mdout,rst}
+    set -e
 }
 
 #==============================================================================
