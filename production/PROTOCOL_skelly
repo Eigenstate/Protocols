@@ -3,8 +3,6 @@
 #SBATCH --partition=(PART)
 #SBATCH --qos=(QOS)
 #SBATCH --ntasks-per-socket=(GPUS) --gres=gpu:(GPUS) --tasks=(GPUS)
-#SBATCH --constraint="titanx"
-#SBATCH --gres-flags=enforce-binding
 #SBATCH --output=(REV)slurm.out --open-mode=append
 #SBATCH --mail-user=robin@robinbetz.com
 #SBATCH --job-name=(NAM)_prod_(REP)
@@ -81,10 +79,19 @@ check_previous "Prod_${last}.mdout" "Prod_${last}" nofail
 last=$(ls -1 $inpdir/$rep/Prod*rst | sed -E -e "s@Prod_?@@" -e "s@.rst@@" -e "s@$inpdir/$rep/@@g" | sort -n | tail -n 1)
 rst="$inpdir/$rep/Prod_${last}.rst"
 
+# Check that last actually exists. If Prod_0 was wrong and deleted, it could be empty
+if [[ -z $last ]] || [[ ! -f $rst ]]; then
+    echo "No such production restart: $rst. Aborting to re-equilibrate."
+    exit 1
+fi
+
 # Remove write permissions for the previously completed trajectory
 # Only if it completed successfully
+# Fail silently if there is a permissions error
 if [[ -f "Prod_${last}.rst" && -s "Prod_${last}.rst" ]]; then
-    chmod a-w "Prod_${last}"*
+    set +e
+    chmod a-w -f "Prod_${last}"*
+    set -e
 fi
 
 # Now start working on the next trajectory
