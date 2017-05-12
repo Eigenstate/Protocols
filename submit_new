@@ -22,7 +22,7 @@ function usage {
   echo "--anisotropic for anisotropic pressure control"
   echo "--semiisotropic for semiisotropic pressure control"
   echo "--resubmit to hook into resubmit script"
-  echo "--msm <rep> for MSM mode: no output, and no minimization. Specify replicate number."
+  echo "--msm <rep> for MSM mode: no output. Specify replicate number."
   echo "--gpus <n> for number of GPUs per simulation. Defaults to 2"
   exit 1
 }
@@ -70,7 +70,7 @@ function start_production {
         sed -i -e "/titanx/d" "$dir/production/$rev/$r/PROTOCOL.sh"
     fi
 
-    chmod +x "$dir/production/$rev/$r/PROTOCOL.sh"
+    chmod +x -f "$dir/production/$rev/$r/PROTOCOL.sh"
     # Submit appropriate number of singleton runs
     cd "$dir/production/$rev/$r"
     for ((i=0;i<${nruns};i++)); do
@@ -272,8 +272,8 @@ else # MSM case gets an equilibration for this replicate too
 fi
 
 # Remove write permissions from prmtop and input coordinates
-chmod a-w "$prmtop"
-chmod a-w "$inpcrd"
+chmod a-w -f "$prmtop"
+chmod a-w -f "$inpcrd"
 
 # Calculate number of steps to run with given speed and queue jobstep size
 if [[ $hmr == "0" ]]; then
@@ -404,7 +404,7 @@ if [[ $prodonly -eq 0 ]]; then
         -e "s@(FUNFILE)@$inpdir/functions@g" \
         < "$inpdir/minimization/PROTOCOL_skelly" > "$mindir/PROTOCOL.sh"
 
-    chmod +x "$mindir/PROTOCOL.sh"
+    chmod +x -f "$mindir/PROTOCOL.sh"
     cd "$mindir"
     minjob=$(sbatch "PROTOCOL.sh" | awk '{print $4}')
     cd - > /dev/null
@@ -461,7 +461,7 @@ if [[ $prodonly -eq 0 ]]; then
         -e "s@(RUNTIME)@$eqtime@g" \
         < "$inpdir/equilibration/PROTOCOL_skelly" > "$eqdir/PROTOCOL.sh"
 
-    chmod +x "$eqdir/PROTOCOL.sh"
+    chmod +x -f "$eqdir/PROTOCOL.sh"
     eqjob=$(sbatch "PROTOCOL.sh" | awk '{print $4}')
     cd - > /dev/null
 fi
