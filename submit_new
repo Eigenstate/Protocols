@@ -280,12 +280,12 @@ if [[ $hmr == "0" ]]; then
     dt=0.0025
     heatwrite="ntpr=100, ntwr=10000, ntwx=1000,"
     eqwrite="ntpr=5000, ntwr=50000, ntwx=10000,"
-    prodwrite="ntpr=25000, ntwr=800000, ntwx=80000,"
+    prodwrite="ntpr=25000, ntwr=80000, ntwx=80000,"
 else
     dt=0.004
     heatwrite="ntpr=50, ntwr=5000, ntwx=500,"
     eqwrite="ntpr=3125, ntwr=31250, ntwx=6250,"
-    prodwrite="ntpr=15625, ntwr=500000, ntwx=50000,"
+    prodwrite="ntpr=15625, ntwr=50000, ntwx=50000,"
 fi
 
 nstep=$(echo "scale=0; $runtime * $speed * 1000 / $dt / 24" | bc) # number of steps
