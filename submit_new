@@ -212,6 +212,7 @@ fi
 if [[ -z $pressure ]]; then
     echo "ERROR: Missing a pressure options"
     echo "       You need to state which pressure control to use"
+    usage
 fi
 
 # Check prmtop (and inpcrd if needed) are valid files
