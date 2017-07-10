@@ -2,6 +2,7 @@
 #SBATCH --time=2:00:00
 #SBATCH --partition=(PART) --qos=(QOS)
 #SBATCH --tasks=8
+#SBATCH --mem=4GB
 #SBATCH --output=(REV)slurm.out --open-mode=append
 #SBATCH --mail-user=(WHOAMI)@stanford.edu --mail-type=FAIL
 #SBATCH --job-name=(NAM)_min
