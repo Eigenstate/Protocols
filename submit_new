@@ -71,12 +71,13 @@ function start_production {
     fi
 
     chmod +x -f "$dir/production/$rev/$r/PROTOCOL.sh"
-    # Submit appropriate number of singleton runs
+
+    # Submit appropriate number of singleton runs as a big job array
     cd "$dir/production/$rev/$r"
-    for ((i=0;i<${nruns};i++)); do
-      prodjob+=($(sbatch --dependency="$depline" "PROTOCOL.sh" | awk '{print $4}'))
-      sleep 0.5
-    done
+    prodjob+=($(sbatch --dependency="$depline" \
+                       --array="1-${nruns}%1" \
+                       "PROTOCOL.sh" | awk '{print $4}'))
+    sleep 0.5
     cd - > /dev/null
 
     if [[ "$resubmit" == 1 ]]; then
