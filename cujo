@@ -39,8 +39,13 @@ while [[ ${#killids[@]} -gt 0 ]] && \
     # Minimize squeue commands since they're slow
     jobinfo=$(squeue --noheader -j $tokill -O "gres,numcpus,nodelist")
     tmpgpus=$(echo "$jobinfo" | awk '{print $1}')
-    tmpgpus=${tmpgpus#${tmpgpus%:*}}
-    tmpgpus=${tmpgpus#:}
+    if [[ "$tmpgpus" == *"null"* ]]; then
+        tmpgpus=0
+        gpuline=""
+    else
+        gpuline="--gres=${tmpgpus}"
+        tmpgpus=$(echo $tmpgpus | awk -F ":" '{print $NF}')
+    fi
     tmpcpus=$(echo "$jobinfo" | awk '{print $2}')
     tmpnodes=$(echo "$jobinfo" | awk '{print $3}')
 
@@ -50,7 +55,7 @@ while [[ ${#killids[@]} -gt 0 ]] && \
                        --output=/dev/null \
                        --tasks=$tmpcpus \
                        --cpus-per-task=1 \
-                       --gres=gpu:$tmpgpus \
+                       $gpuline \
                        --partition=rondror \
                        --qos=rondror_high \
                        --nodelist=$tmpnodes | awk '{print $4}'))
