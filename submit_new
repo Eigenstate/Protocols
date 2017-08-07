@@ -235,6 +235,10 @@ fi
 
 # Set runtime and QOS according to allowed runtime
 if [[ "$qos" == "rondror" || "$qos" == "rondror_high" ]]; then
+    if [[ $SHERLOCK == 2 ]]; then
+        echo "Sherlock 2 only has normal QOS. Setting it for you."
+        qos="normal"
+    fi
     part="rondror"
     runtime=8
 elif [[ "$qos" == "owners" ]]; then
