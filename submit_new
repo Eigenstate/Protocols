@@ -74,7 +74,8 @@ function start_production {
 
     # Submit appropriate number of singleton runs as a big job array
     cd "$dir/production/$rev/$r"
-    prodjob+=($(sbatch --dependency="$depline" \
+    prodjob+=($(sbatch --export=SHERLOCK="$SHERLOCK" \
+                       --dependency="$depline" \
                        --array="1-${nruns}%1" \
                        "PROTOCOL.sh" | awk '{print $4}'))
     sleep 0.5
@@ -412,7 +413,7 @@ if [[ $prodonly -eq 0 ]]; then
 
     chmod +x -f "$mindir/PROTOCOL.sh"
     cd "$mindir"
-    minjob=$(sbatch "PROTOCOL.sh" | awk '{print $4}')
+    minjob=$(sbatch --export=SHERLOCK="$SHERLOCK" "PROTOCOL.sh" | awk '{print $4}')
     cd - > /dev/null
 fi
 
@@ -468,7 +469,7 @@ if [[ $prodonly -eq 0 ]]; then
         < "$inpdir/equilibration/PROTOCOL_skelly" > "$eqdir/PROTOCOL.sh"
 
     chmod +x -f "$eqdir/PROTOCOL.sh"
-    eqjob=$(sbatch "PROTOCOL.sh" | awk '{print $4}')
+    eqjob=$(sbatch --export=SHERLOCK="$SHERLOCK" "PROTOCOL.sh" | awk '{print $4}')
     cd - > /dev/null
 fi
 
