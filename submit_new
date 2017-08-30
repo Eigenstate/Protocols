@@ -59,6 +59,7 @@ function start_minimization {
         -e "s@(NOW)@$(date)@g" \
         -e "s@(QOS)@$minqos@g" \
         -e "s@(PART)@$minpart@g" \
+        -e "s@(REP)@$r@g" \
         -e "s@(INP)@$mindir@g" \
         -e "s@(DIR)@$dir@g" \
         -e "s@(WHOAMI)@$(whoami)@g" \
@@ -127,6 +128,7 @@ function start_equilibration {
         -e "s@(NOW)@$(date)@g" \
         -e "s@(QOS)@$qos@g" \
         -e "s@(PART)@$part@g" \
+        -e "s@(REP)@$r@g" \
         -e "s@(INP)@$eqdir@g" \
         -e "s@(P2P)@$inpdir/gpuP2PCheck@" \
         -e "s@(WHOAMI)@$(whoami)@g" \

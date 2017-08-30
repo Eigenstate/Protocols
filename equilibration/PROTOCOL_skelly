@@ -7,7 +7,7 @@
 ##SBATCH --constraint="titanx"
 #SBATCH --output=(REV)slurm.out --open-mode=append
 #SBATCH --mail-user=(WHOAMI)@stanford.edu --mail-type=FAIL
-#SBATCH --job-name=(NAM)_eq
+#SBATCH --job-name=(NAM)_eq_(REP)
 # If you want to run after a minimization is done, uncomment this
 # and put in the job number at the end.
 #SBATCH --dependency=afterok:(MINNUM)
