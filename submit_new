@@ -8,26 +8,141 @@ function usage {
   echo "       [--hmr] [--isotropic] [--msm <repnum>]"
   echo "       [--gpus <n>]"
   echo
-  echo "<revision> = Simulation revision to write"
-  echo "<directory> = Root directory of simulation. Defaults to \$PWD"
-  echo "<prmtop> = Path to prmtop. Assumes inpcrd has same prefix"
-  echo "<queue> = rondror | rondror_high | owners | shared"
-  echo "<speed> = Simulation speed, in ns/day"
-  echo "<time> = Total desired time, in ns"
-  echo "<restraints> = Residues to restrain, comma or - separated"
-  echo "<inpcrd> = Input coordinates to use, if not default named"
-  echo "--production to submit new production runs only"
-  echo "--hmr for increased timestep"
-  echo "--isotropic for isotropic pressure control"
-  echo "--anisotropic for anisotropic pressure control"
-  echo "--semiisotropic for semiisotropic pressure control"
-  echo "--resubmit to hook into resubmit script"
-  echo "--msm <rep> for MSM mode: no output. Specify replicate number."
-  echo "--gpus <n> for number of GPUs per simulation. Defaults to 2"
-  exit 1
+  echo "The following flags are mandatory:"
+  echo "  -r <revision> = Simulation revision to write"
+  echo "  -p <prmtop> = Path to prmtop. Assumes inpcrd has same prefix"
+  echo "  -j <job name> = Job name prefix, will be shown in squeue"
+  echo "  -q <queue> = rondror | rondror_high | owners | shared"
+  echo "  -s <speed> = Simulation speed, in ns/day"
+  echo "  -t <time> = Total desired time, in ns"
+  echo "  -n <# replicates> = Number of simulation replicates to start"
+  echo
+  echo "One of these pressure control flags must be specified:"
+  echo "  --isotropic for isotropic pressure control"
+  echo "  --anisotropic for anisotropic pressure control"
+  echo "  --semiisotropic for semiisotropic pressure control"
+  echo
+  echo "The following flags are optional:"
+  echo "  --production to submit new production runs only"
+  echo "  --hmr for increased timestep"
+  echo "  -c <inpcrd> = Input coordinates to use, if not default named"
+  echo "  -d <directory> = Root directory of simulation. Defaults to \$PWD"
+  echo "  --restraints <restraints> = Residues to restrain, comma or - separated"
+  echo "  --resubmit to hook into resubmit script"
+  echo "  --msm <rep> for MSM mode: no output, specify single replicate number."
+  echo "  --gpus <n> for number of GPUs per simulation. Defaults to 1"
 }
 
+declare -a minjob
+declare -a eqjob
 declare -a prodjob # Global variable for all production jobs
+
+# Starts minimization jobs
+# $1 = replicate number
+function start_minimization {
+
+    if [[ $msm -eq 0 ]]; then
+        echo "Creating jobs:"
+        echo "Minimization..."
+        r="$1" # Replicate number
+    else
+        r="$msm"
+    fi
+    mindir="$dir/minimization/$rev/$r"
+
+    # Copy input files
+    cp $inpdir/minimization/*.mdin $mindir
+
+    # Create protocol file
+    sed -e "s@(REV)@$rev@g" \
+        -e "s@(PRMTOP)@$prmtop@g" \
+        -e "s@(INPCRD)@$inpcrd@g" \
+        -e "s@(NAM)@$name@g" \
+        -e "s@(NOW)@$(date)@g" \
+        -e "s@(QOS)@$minqos@g" \
+        -e "s@(PART)@$minpart@g" \
+        -e "s@(INP)@$mindir@g" \
+        -e "s@(DIR)@$dir@g" \
+        -e "s@(WHOAMI)@$(whoami)@g" \
+        -e "s@(REF)@$inpcrd@g" \
+        -e "s@(FUNFILE)@$inpdir/functions@g" \
+        < "$inpdir/minimization/PROTOCOL_skelly" > "$mindir/PROTOCOL.sh"
+
+    chmod +x -f "$mindir/PROTOCOL.sh"
+    cd "$mindir"
+    minjob+=$(sbatch --export=SHERLOCK="$SHERLOCK" "PROTOCOL.sh" | awk '{print $4}')
+    cd - > /dev/null
+
+    return 0
+}
+
+# Starts equilibration jobs
+# $1 = replicate number
+# $2 = minimization job id, if started
+function start_equilibration {
+
+    # Set up directory structure for equilibration
+    if [[ $msm -eq 0 ]]; then
+        r="$1"
+    else # MSM case gets an equilibration for this replicate too
+        r="$msm"
+    fi
+    eqdir="$dir/equilibration/$rev/$r"
+    minjob="$2"
+
+    # Create heating mdin files. These are a bit different than other
+    # equlibration files so do them separately
+    # First is 12.5 ps, then second is 125 ps
+    sed -e "s/(DT)/$dt/g" \
+        -e "s/(HEATWRITE)/$heatwrite/g" \
+        -e "s/(NSTEPS)/$(echo "scale=0; 12.5/$dt" | bc)/g" \
+        < "$inpdir/equilibration/Heat_1.mdin" > "$eqdir/Heat_1.mdin"
+    sed -e "s/(DT)/$dt/g" \
+        -e "s/(PRESSURE)/$pressure/g" \
+        -e "s/(HEATWRITE)/$heatwrite/g" \
+        -e "s/(NSTEPS)/$(echo "scale=0; 125/$dt" | bc)/g" \
+        < "$inpdir/equilibration/Heat_2.mdin" > "$eqdir/Heat_2.mdin"
+
+    # Now do the equilibration mdin files, each is 2 ns
+    cd "$inpdir/equilibration/"
+    for i in $(ls Eq*mdin); do
+        sed -e "s/(DT)/$dt/g" \
+            -e "s/(PRESSURE)/$pressure/g"\
+            -e "s/(EQWRITE)/$eqwrite/g" \
+            -e "s/(NSTEPS)/$(echo "scale=0; 2000/$dt" | bc)/g" \
+            < "$i" > "$eqdir/$i"
+    done
+    cd - > /dev/null
+
+    # Equilibration
+    cd $eqdir
+    if [[ $msm -eq 0 ]]; then
+        echo "Equilibration..."
+    fi
+
+    sed -e "s@(REV)@$rev@g" \
+        -e "s@(MINNUM)@$minjob@g" \
+        -e "s@(PRMTOP)@$prmtop@g" \
+        -e "s@(RST)@$mindir/min3.rst@g" \
+        -e "s@(DIR)@$dir@g" \
+        -e "s@(NAM)@$name@g" \
+        -e "s@(NOW)@$(date)@g" \
+        -e "s@(QOS)@$qos@g" \
+        -e "s@(PART)@$part@g" \
+        -e "s@(INP)@$eqdir@g" \
+        -e "s@(P2P)@$inpdir/gpuP2PCheck@" \
+        -e "s@(WHOAMI)@$(whoami)@g" \
+        -e "s@(REF)@$reference@g" \
+        -e "s@(FUNFILE)@$inpdir/functions@g" \
+        -e "s@(GPUS)@$ngpus@g" \
+        -e "s@(RUNTIME)@$eqtime@g" \
+        < "$inpdir/equilibration/PROTOCOL_skelly" > "$eqdir/PROTOCOL.sh"
+
+    chmod +x -f "$eqdir/PROTOCOL.sh"
+    eqjob+=$(sbatch --export=SHERLOCK="$SHERLOCK" "PROTOCOL.sh" | awk '{print $4}')
+    cd - > /dev/null
+    return 0
+}
 
 # Starts production jobs
 # $1 = replicate number
@@ -37,7 +152,7 @@ function start_production {
       echo "Replicate: $1"
   fi
   r="$1"
- 
+
   if [[ -z $2 ]]; then
     depline="singleton"
   else
@@ -115,7 +230,7 @@ hmr=0
 pressure=""
 resubmit=0
 msm=0
-ngpus=2
+ngpus=1
 
 # Parse input arguments
 while [[ "$#" > 0 ]]; do
@@ -189,6 +304,7 @@ while [[ "$#" > 0 ]]; do
     ;;
     *)
     usage
+    exit 1
     ;;
   esac
   shift
@@ -199,22 +315,22 @@ if [[ $msm -ne 0 ]]; then
     if [[ ! -z $rep ]]; then
         echo "WARNING: Cannot specify msm mode and number of replicates"
         echo "         Ignoring replicate number"
-    #    usage
     fi
     rep=$msm
 fi
 
 # Check for mandatory options
 if [[ -z $rev || -z $rep || -z $name || -z $speed || -z $nsec ]]; then
-    echo "ERROR: Missing a mandatory option"
-    echo "       Do you have -r, -j, -s, -t, and -n ?"
     usage
+    echo -e "\nERROR: Missing a mandatory option"
+    exit 1
 fi
 
 if [[ -z $pressure ]]; then
+    usage
     echo "ERROR: Missing a pressure options"
     echo "       You need to state which pressure control to use"
-    usage
+    exit 1
 fi
 
 # Check prmtop (and inpcrd if needed) are valid files
@@ -251,7 +367,7 @@ elif [[ "$qos" == "shared" ]]; then
     part="gpu"
     runtime=48
 else
-    echo "ERROR: Invalid queue choice '$qos'" 
+    echo "ERROR: Invalid queue choice '$qos'"
     usage
     exit 1
 fi
@@ -269,13 +385,6 @@ if [[ "$ngpus" == "1" ]]; then
     eqtime=12
 else
     eqtime=8
-fi
-
-# Set up directory structure for equilibration
-if [[ $msm -eq 0 ]]; then
-    eqdir="$dir/equilibration/$rev"
-else # MSM case gets an equilibration for this replicate too
-    eqdir="$dir/equilibration/$rev/$rep"
 fi
 
 # Remove write permissions from prmtop and input coordinates
@@ -337,14 +446,14 @@ if [[ $msm -eq 0 ]]; then
     echo "Checking directory structure"
 fi
 if [[ ! -d "$dir" ]]; then mkdir -p $dir; fi
-if [[ ! -d "$dir/minimization/$rev" ]]; then mkdir -p "$dir/minimization/$rev"; fi
-if [[ ! -d "$dir/equilibration/$rev" ]]; then mkdir -p "$dir/equilibration/$rev"; fi
 #if [[ ! -d "${dir/scratch/share}" ]]; then ln -s "$dir" "${dir/scratch/share}"; fi
 
 # Make production replicate directories
 if [[ $msm -eq 0 ]]; then
     for ((r=1;r<=$rep;r++)); do
       if [[ ! -d "${dir}/production/$rev/$r" ]]; then mkdir -p "${dir}/production/$rev/$r"; fi
+      if [[ ! -d "$dir/minimization/$rev/$r" ]]; then mkdir -p "$dir/minimization/$rev/$r"; fi
+      if [[ ! -d "$dir/equilibration/$rev/$r" ]]; then mkdir -p "$dir/equilibration/$rev/$r"; fi
     done
     echo "Ok"
     echo "Checking for overwrites..."
@@ -358,14 +467,14 @@ fi
 # Don't check for production files since they are auto-appended
 if [[ $prodonly == "0" ]]; then
     if [[ $msm -eq 0 ]]; then
-        if [[ -e "$dir/minimization/$rev/min1.mdout" || \
-              -e "$dir/equilibration/$rev/Eq_1.mdout" || \
-              -e "$dir/equilibration/$rev/$rep/Eq_1.mdout" ]]; then
+        if [[ -e "$dir/minimization/$rev/1/min1.mdout" || \
+              -e "$dir/equilibration/$rev/1/Eq_1.mdout" || \
+              -e "$dir/equilibration/$rev/1/Eq_1.mdout" ]]; then
             echo "ERROR: Output files found from revision $rev. Won't overwrite."
             exit 1
         fi
     else
-        if [[ -e "$dir/minimizatino/$rev/$msm/min1.mdout" || \
+        if [[ -e "$dir/minimization/$rev/$msm/min1.mdout" || \
               -e "$dir/equilibration/$rev/msm/Eq_1.mdout" || \
               -e "$dir/equilibration/$rev/$msm/Eq_1.mdout" ]]; then
             echo "ERROR: Output files from revision $rev, rep $msm. Won't overwrite."
@@ -379,101 +488,7 @@ fi
 # Reference is initial minimized coordinates -R (7Mar16)
 reference="$inpcrd"
 
-# Create input files
-# Use @ in sed separator because '/' is in some of these variables
-if [[ $prodonly -eq 0 ]]; then
-
-    # MINIMIZATION
-
-    if [[ $msm -eq 0 ]]; then
-        echo "Creating jobs:"
-        echo "Minimization..."
-        mindir="$dir/minimization/$rev"
-    else
-        mindir="$dir/minimization/$rev/$rep"
-    fi
-
-    # Copy input files
-    cp $inpdir/minimization/*.mdin $mindir
-
-    # Create protocol file
-    sed -e "s@(REV)@$rev@g" \
-        -e "s@(PRMTOP)@$prmtop@g" \
-        -e "s@(INPCRD)@$inpcrd@g" \
-        -e "s@(NAM)@$name@g" \
-        -e "s@(NOW)@$(date)@g" \
-        -e "s@(QOS)@$minqos@g" \
-        -e "s@(PART)@$minpart@g" \
-        -e "s@(INP)@$mindir@g" \
-        -e "s@(DIR)@$dir@g" \
-        -e "s@(WHOAMI)@$(whoami)@g" \
-        -e "s@(REF)@$inpcrd@g" \
-        -e "s@(FUNFILE)@$inpdir/functions@g" \
-        < "$inpdir/minimization/PROTOCOL_skelly" > "$mindir/PROTOCOL.sh"
-
-    chmod +x -f "$mindir/PROTOCOL.sh"
-    cd "$mindir"
-    minjob=$(sbatch --export=SHERLOCK="$SHERLOCK" "PROTOCOL.sh" | awk '{print $4}')
-    cd - > /dev/null
-fi
-
-if [[ $prodonly -eq 0 ]]; then
-    # EQUILIBRATION
-
-    # Create heating mdin files. These are a bit different than other
-    # equlibration files so do them separately
-    # First is 12.5 ps, then second is 125 ps
-    sed -e "s/(DT)/$dt/g" \
-        -e "s/(HEATWRITE)/$heatwrite/g" \
-        -e "s/(NSTEPS)/$(echo "scale=0; 12.5/$dt" | bc)/g" \
-        < "$inpdir/equilibration/Heat_1.mdin" > "$eqdir/Heat_1.mdin"
-    sed -e "s/(DT)/$dt/g" \
-        -e "s/(PRESSURE)/$pressure/g" \
-        -e "s/(HEATWRITE)/$heatwrite/g" \
-        -e "s/(NSTEPS)/$(echo "scale=0; 125/$dt" | bc)/g" \
-        < "$inpdir/equilibration/Heat_2.mdin" > "$eqdir/Heat_2.mdin"
-
-    # Now do the equilibration mdin files, each is 2 ns
-    cd "$inpdir/equilibration/"
-    for i in $(ls Eq*mdin); do
-        sed -e "s/(DT)/$dt/g" \
-            -e "s/(PRESSURE)/$pressure/g"\
-            -e "s/(EQWRITE)/$eqwrite/g" \
-            -e "s/(NSTEPS)/$(echo "scale=0; 2000/$dt" | bc)/g" \
-            < "$i" > "$eqdir/$i"
-    done
-    cd - > /dev/null
-
-    # Equilibration
-    cd $eqdir
-    if [[ $msm -eq 0 ]]; then
-        echo "Equilibration..."
-    fi
-
-    sed -e "s@(REV)@$rev@g" \
-        -e "s@(MINNUM)@$minjob@g" \
-        -e "s@(PRMTOP)@$prmtop@g" \
-        -e "s@(RST)@$mindir/min3.rst@g" \
-        -e "s@(DIR)@$dir@g" \
-        -e "s@(NAM)@$name@g" \
-        -e "s@(NOW)@$(date)@g" \
-        -e "s@(QOS)@$qos@g" \
-        -e "s@(PART)@$part@g" \
-        -e "s@(INP)@$eqdir@g" \
-        -e "s@(P2P)@$inpdir/gpuP2PCheck@" \
-        -e "s@(WHOAMI)@$(whoami)@g" \
-        -e "s@(REF)@$reference@g" \
-        -e "s@(FUNFILE)@$inpdir/functions@g" \
-        -e "s@(GPUS)@$ngpus@g" \
-        -e "s@(RUNTIME)@$eqtime@g" \
-        < "$inpdir/equilibration/PROTOCOL_skelly" > "$eqdir/PROTOCOL.sh"
-
-    chmod +x -f "$eqdir/PROTOCOL.sh"
-    eqjob=$(sbatch --export=SHERLOCK="$SHERLOCK" "PROTOCOL.sh" | awk '{print $4}')
-    cd - > /dev/null
-fi
-
-# SET UP PRODUCTION RUNS 
+# SET UP PRODUCTION RUNS
 prodir="$dir/production/$rev"
 
 # Write settable variables in local copy of input files
@@ -503,15 +518,21 @@ if [[ $msm -eq 0 ]]; then
     read sheepity
 fi
 
-# SUBMIT PRODUCTION RUNS
+# SUBMIT ALL RUNS
 if [[ $msm -eq 0 ]]; then
     echo "Not msming.. submitting $rep replicates"
     for ((x=1;x<=$rep;x++)); do
         echo " On $x"
-        start_production $x $eqjob
+        if [[ $prodonly -eq 0 ]]; then
+            start_minimization $x
+            start_equilibration $x ${minjob[-1]}
+        fi
+        start_production $x ${eqjob[-1]}
     done
 else
-    start_production $msm $eqjob
+    start_minimization $msm
+    start_equilibration $msm ${minjob[-1]}
+    start_production $msm ${eqjob[-1]}
 fi
 
 if [[ $msm -eq 0 ]]; then
