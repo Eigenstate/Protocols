@@ -42,8 +42,6 @@ declare -a prodjob # Global variable for all production jobs
 function start_minimization {
 
     if [[ $msm -eq 0 ]]; then
-        echo "Creating jobs:"
-        echo "Minimization..."
         r="$1" # Replicate number
     else
         r="$msm"
@@ -70,7 +68,7 @@ function start_minimization {
 
     chmod +x -f "$mindir/PROTOCOL.sh"
     cd "$mindir"
-    minjob+=$(sbatch --export=SHERLOCK="$SHERLOCK" "PROTOCOL.sh" | awk '{print $4}')
+    minjob+=($(sbatch --export=SHERLOCK="$SHERLOCK" "PROTOCOL.sh" | awk '{print $4}'))
     cd - > /dev/null
 
     return 0
@@ -139,7 +137,7 @@ function start_equilibration {
         < "$inpdir/equilibration/PROTOCOL_skelly" > "$eqdir/PROTOCOL.sh"
 
     chmod +x -f "$eqdir/PROTOCOL.sh"
-    eqjob+=$(sbatch --export=SHERLOCK="$SHERLOCK" "PROTOCOL.sh" | awk '{print $4}')
+    eqjob+=($(sbatch --export=SHERLOCK="$SHERLOCK" "PROTOCOL.sh" | awk '{print $4}'))
     cd - > /dev/null
     return 0
 }
@@ -525,14 +523,14 @@ if [[ $msm -eq 0 ]]; then
         echo " On $x"
         if [[ $prodonly -eq 0 ]]; then
             start_minimization $x
-            start_equilibration $x ${minjob[-1]}
+            start_equilibration $x ${minjob[${#minjob[@]}-1]}
         fi
-        start_production $x ${eqjob[-1]}
+        start_production $x ${eqjob[${#eqjob[@]}-1]}
     done
 else
     start_minimization $msm
-    start_equilibration $msm ${minjob[-1]}
-    start_production $msm ${eqjob[-1]}
+    start_equilibration $msm ${minjob[${#minjob[@]}-1]}
+    start_production $msm ${eqjob[${#eqjob[@]}-1]}
 fi
 
 if [[ $msm -eq 0 ]]; then
@@ -544,9 +542,13 @@ if [[ $msm -eq 0 ]]; then
     echo " NAME: $name"
     if [[ $prodonly == "0" ]]; then
         echo " MINIMIZATION:"
-        echo "    $minjob"
+        for j in ${minjob[@]}; do
+            echo "    $j"
+        done
         echo " EQUILIBRATION: "
-        echo "    $eqjob"
+        for j in ${eqjob[@]}; do
+            echo "    $j"
+        done
     fi
     echo " PRODUCTION:"
     for j in ${prodjob[@]}; do
