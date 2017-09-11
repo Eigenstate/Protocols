@@ -10,7 +10,7 @@
 #SBATCH --job-name=(NAM)_eq_(REP)
 # If you want to run after a minimization is done, uncomment this
 # and put in the job number at the end.
-#SBATCH --dependency=afterok:(MINNUM)
+#SBATCH --dependency=afterok:(MINNUM),singleton
 #
 #=====================================================================
 #                            PROTOCOL(REV)
