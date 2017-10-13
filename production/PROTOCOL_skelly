@@ -5,7 +5,7 @@
 #SBATCH --ntasks-per-socket=(GPUS) --gres=gpu:(GPUS) --tasks=(GPUS)
 #SBATCH --mem=1GB
 #SBATCH --output=(REV)slurm.out --open-mode=append
-#SBATCH --mail-user=robin@robinbetz.com
+##SBATCH --mail-user=(WHOAMI)@stanford.edu --mail-type=FAIL
 #SBATCH --job-name=(NAM)_prod_(REP)
 #
 #
