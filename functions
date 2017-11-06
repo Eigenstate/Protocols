@@ -104,7 +104,9 @@ function run_md {
     fi
 
     $MPI_HOME/bin/mpirun -np $SLURM_NTASKS_PER_SOCKET \
-                         --bind-to socket $AMBERHOME/bin/pmemd.cuda.MPI \
+                         -env LD_BIND_NOW 1 \
+                         --bind-to socket \
+                         $AMBERHOME/bin/pmemd.cuda.MPI \
                          -O \
                          -i "$inp" \
                          -o "${1}.mdout" -p "$prmtop" -c "$2" \
@@ -133,7 +135,10 @@ function run_md_min {
         inp=$3
     fi
 
-    $MPI_HOME/bin/mpirun -np 8 --bind-to socket $AMBERHOME/bin/pmemd.MPI \
+    $MPI_HOME/bin/mpirun -np $SLURM_NTASKS \
+                         -env LD_BIND_NOW 1 \
+                         --bind-to socket \
+                         $AMBERHOME/bin/pmemd.MPI \
                          -O \
                          -i "$inp" \
                          -o "${1}.mdout" -p "$prmtop" -c "$2" \
