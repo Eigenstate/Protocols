@@ -44,17 +44,23 @@ function check_previous {
         error=2
     fi
 
+    # Check for incomplete rst file
+    badrst=$(grep "end-of-file during read" "${rev}slurm.out" | \
+             tail -n 1 | awk '{print $NF}')
+    if [[ ! -z $badrst ]]; then
+        echo "Incomplete rst file!"
+        error=2
+    fi
+
     # Check for cuda error as last line
-    if $(tail -n 1 "${rev}slurm.out" | grep -qi "cuda"); then
+    if $(tail -n 1 "${rev}slurm.out" | grep -qi "cuda.*gpubuffer"); then
         echo "Cuda crash!"
         error=2
     fi
 
-    # Check for incomplete rst file
-    badrst=$(grep "end-of-file during read" "${rev}slurm.out" | \
-             tail -n 1 | awk '{print $NF}')
-    if [[ ! -z $rst ]]; then
-        echo "Incomplete rst file!"
+    # Check for MPI error as last line
+    if $(tail -n 1 "${rev}slurm.out" | grep -qi "mpi_abort"); then
+        echo "MPI crash"
         error=2
     fi
 
@@ -64,17 +70,20 @@ function check_previous {
     # Delete previous one
     if [[ "$error" -eq 2 ]]; then
         if [[ "$2" == "Prod_0" ]]; then
-            prev="Eq_6"
+            echo "Deleting Eq_6"
+            rm -f "Eq_6".{nc,mdout.rst}
         elif [[ "$2" == "Eq_6" ]]; then
             echo "Deleting bad Eq_6"
             rm -f "Eq_6".{nc,mdout.rst}
             rm -f "mdinfo"
-            return $fail
+        elif [[ "$2" == *"Heat"* ]]; then
+            echo "Deleting heating"
+            rm -f "Heat"*.{nc,mdout,rst}
         else
+            echo "Deleting previous: $prev"
             prev="Prod_$(($(echo "$2" | awk -F '_' '{print $NF}')-1))"
+            rm -f "$prev".{nc,mdout.rst}
         fi
-        echo "Deleting previous: $prev"
-        rm -f "$prev".{nc,mdout.rst}
     fi
 
     if [[ "$error" -ne 0 ]]; then
@@ -88,6 +97,8 @@ function check_previous {
             echo "1" > "failure"
         fi
 
+        # Resubmit the job
+        sbatch "PROTOCOL.sh"
         return $fail
     fi
 
