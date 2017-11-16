@@ -50,6 +50,14 @@ function check_previous {
         error=2
     fi
 
+    # Check for incomplete rst file
+    badrst=$(grep "end-of-file during read" "${rev}slurm.out" | \
+             tail -n 1 | awk '{print $NF}')
+    if [[ ! -z $rst ]]; then
+        echo "Incomplete rst file!"
+        error=2
+    fi
+
     # Check for crash caused by previous coordinates
     # TODO
 
