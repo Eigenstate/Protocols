@@ -45,10 +45,12 @@ function check_previous {
     fi
 
     # Check for incomplete rst file
+    # Replace error lines in slurm file so this doesn't repeatedly trigger
     badrst=$(grep "end-of-file during read" "${rev}slurm.out" | \
              tail -n 1 | awk '{print $NF}')
     if [[ ! -z $badrst ]]; then
         echo "Incomplete rst file!"
+        sed -e "s/end-of-file during read/EOFERROR/g" -i "${rev}slurm.out"
         error=2
     fi
 
