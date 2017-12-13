@@ -124,14 +124,27 @@ function run_md {
         inp=$3
     fi
 
-    $MPI_HOME/bin/mpirun -np $SLURM_NTASKS_PER_SOCKET \
-                         -env LD_BIND_NOW 1 \
-                         --bind-to socket \
-                         $AMBERHOME/bin/pmemd.cuda.MPI \
-                         -O \
-                         -i "$inp" \
-                         -o "${1}.mdout" -p "$prmtop" -c "$2" \
-                         -r "${1}.rst" -ref "$ref" -x "${1}.nc"
+    if [[ $SHERLOCK == 2 && $SLURM_NTASKS_PER_SOCKET == 1 ]]; then
+        $AMBERHOME/bin/pmemd.cuda \
+        -O \
+        -i "$inp" \
+        -o "${1}.mdout" -p "$prmtop" -c "$2" \
+        -r "${1}.rst" -ref "$ref" -x "${1}.nc"
+    else
+        # Handle openmpi wanting a subtly different flag
+        if [[ $MPI_HOME == *"openmpi"* ]]; then
+            sockarg="--bind-to-socket"
+        else
+            sockarg="--bind-to socket"
+        fi
+        $MPI_HOME/bin/mpirun -np $SLURM_NTASKS_PER_SOCKET \
+                             $sockarg \
+                             $AMBERHOME/bin/pmemd.cuda.MPI \
+                             -O \
+                             -i "$inp" \
+                             -o "${1}.mdout" -p "$prmtop" -c "$2" \
+                             -r "${1}.rst" -ref "$ref" -x "${1}.nc"
+    fi
 
     # Remove write permissions but don't fail if you can't
     if [[ -z "$4" ]]; then

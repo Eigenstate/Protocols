@@ -19,15 +19,11 @@ if [[ $SHERLOCK == 1 ]]; then
     module load intel/2015
     module load cuda/8.0
 
-# For Sherlock 2, the module names are slightly different
+# For sherlock 2, use the new installation
 elif [[ $SHERLOCK == 2 ]]; then
-
-    module load ifort/2018
-    module load icc/2018
-    module load imkl/2018
-    module load cuda/8.0.61
-    module unload openmpi impi
-
+    export AMBERHOME="$PI_HOME/software/amber16_gnu"
+    . $AMBERHOME/setup_amber.sh
+    return
 else
     echo "SHERLOCK is unset! Doing nothing"
     return
