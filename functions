@@ -125,20 +125,15 @@ function run_md {
     fi
 
     if [[ $SHERLOCK == 2 && $SLURM_NTASKS_PER_SOCKET == 1 ]]; then
+        unset CUDA_VISIBLE_DEVICES # HACK HACK HACK
         $AMBERHOME/bin/pmemd.cuda \
         -O \
         -i "$inp" \
         -o "${1}.mdout" -p "$prmtop" -c "$2" \
         -r "${1}.rst" -ref "$ref" -x "${1}.nc"
     else
-        # Handle openmpi wanting a subtly different flag
-        if [[ $MPI_HOME == *"openmpi"* ]]; then
-            sockarg="--bind-to-socket"
-        else
-            sockarg="--bind-to socket"
-        fi
         $MPI_HOME/bin/mpirun -np $SLURM_NTASKS_PER_SOCKET \
-                             $sockarg \
+                             --bind-to socket \
                              $AMBERHOME/bin/pmemd.cuda.MPI \
                              -O \
                              -i "$inp" \
@@ -170,7 +165,6 @@ function run_md_min {
     fi
 
     $MPI_HOME/bin/mpirun -np $SLURM_NTASKS \
-                         -env LD_BIND_NOW 1 \
                          --bind-to socket \
                          $AMBERHOME/bin/pmemd.MPI \
                          -O \
