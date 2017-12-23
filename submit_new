@@ -535,8 +535,9 @@ if [[ $msm -eq 0 ]]; then
         if [[ $prodonly -eq 0 ]]; then
             start_minimization $x
             start_equilibration $x ${minjob[${#minjob[@]}-1]}
+            start_production $x ${eqjob[${#eqjob[@]}-1]}
         fi
-        start_production $x ${eqjob[${#eqjob[@]}-1]}
+        start_production $x
     done
 else
     start_minimization $msm
