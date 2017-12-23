@@ -5,7 +5,7 @@ function usage {
   echo "       -j <job name> -q <queue> -s <speed> -t <time>"
   echo "       -n <# replicates> [-c <inpcrd>]"
   echo "       [--restraints <restraints>] [--production]"
-  echo "       [--hmr] [--isotropic] [--msm <repnum>]"
+  echo "       [--hmr|--slow] [--isotropic] [--msm <repnum>]"
   echo "       [--gpus <n>]"
   echo
   echo "The following flags are mandatory:"
@@ -25,6 +25,7 @@ function usage {
   echo "The following flags are optional:"
   echo "  --production to submit new production runs only"
   echo "  --hmr for increased timestep"
+  echo "  --slow for 2fs timestep"
   echo "  -c <inpcrd> = Input coordinates to use, if not default named"
   echo "  -d <directory> = Root directory of simulation. Defaults to \$PWD"
   echo "  --restraints <restraints> = Residues to restrain, comma or - separated"
@@ -282,6 +283,9 @@ while [[ "$#" > 0 ]]; do
     "--hmr")
     hmr=1
     ;;
+    "--slow")
+    hmr=2
+    ;;
     "--semiisotropic")
     pressure="ntp=3, csurften=3, gamma_ten=0.,"
     ;;
@@ -397,11 +401,16 @@ if [[ $hmr == "0" ]]; then
     heatwrite="ntpr=100, ntwr=10000, ntwx=1000,"
     eqwrite="ntpr=5000, ntwr=50000, ntwx=10000,"
     prodwrite="ntpr=25000, ntwr=80000, ntwx=80000,"
-else
+elif [[ $hmr == "1" ]]; then
     dt=0.004
     heatwrite="ntpr=50, ntwr=5000, ntwx=500,"
     eqwrite="ntpr=3125, ntwr=31250, ntwx=6250,"
     prodwrite="ntpr=15625, ntwr=50000, ntwx=50000,"
+elif [[ $hmr == "2" ]]; then
+    dt=0.002
+    heatwrite="ntpr=100, ntwr=10000, ntwx=1000,"
+    eqwrite="ntpr=6250, ntwr=62500, ntwx=12500,"
+    prodwrite="ntpr=31250, ntwr=100000, ntwx=100000,"
 fi
 
 nstep=$(echo "scale=0; $runtime * $speed * 1000 / $dt / 24" | bc) # number of steps
