@@ -154,6 +154,8 @@ function start_production {
   fi
   r="$1"
 
+  eqdir="${prodir/production/equilibration}/$r"
+
   if [[ -z $2 ]]; then
     depline="singleton"
   else
