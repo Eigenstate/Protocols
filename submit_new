@@ -433,11 +433,10 @@ fi
 
 # Check for skeleton protocols in input files directory
 # These should all be here if this script is properly configured
-inpdir="/share/PI/rondror/software/submit_new/"
+inpdir="$PI_HOME/software/submit_new/"
 if [[ ! -e "$inpdir/minimization/PROTOCOL_skelly" || \
       ! -e "$inpdir/equilibration/PROTOCOL_skelly" || \
-      ! -e "$inpdir/production/PROTOCOL_first_skelly" || \
-      ! -e "$inpdir/production/PROTOCOL_continue_skelly" ]]; then
+      ! -e "$inpdir/production/PROTOCOL_skelly" ]]; then
     echo "ERROR: Cannot find skeleton input files. Looked in:"
     echo "       $inpdir"
     exit 1
