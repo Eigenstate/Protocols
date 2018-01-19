@@ -504,21 +504,29 @@ prodir="$dir/production/$rev"
 # Write settable variables in local copy of input files
 # Use / as a separator here since there can be a '@' in restraint string
 # Nsteps is for 5 ns of runtime in the production final equilibration
-sed -e "s/(RESTRAINT)/$restraint/g" \
-    -e "s/(NSTEPS)/$(echo "scale=0; 5000/$dt" | bc)/g" \
-    -e "s/(PRESSURE)/$pressure/g" \
-    -e "s/(DT)/$dt/g" \
-    -e "s/(EQWRITE)/$eqwrite/g" \
-    < "$inpdir/production/Eq_6.mdin" > "$prodir/Eq_6.mdin"
+if [[ ! -f $prodir/Eq_6.mdin ]]; then
+    sed -e "s/(RESTRAINT)/$restraint/g" \
+        -e "s/(NSTEPS)/$(echo "scale=0; 5000/$dt" | bc)/g" \
+        -e "s/(PRESSURE)/$pressure/g" \
+        -e "s/(DT)/$dt/g" \
+        -e "s/(EQWRITE)/$eqwrite/g" \
+        < "$inpdir/production/Eq_6.mdin" > "$prodir/Eq_6.mdin"
+else
+    echo "Using existing Eq_6.mdin"
+fi
 
 # Same thing for the production file, using calculated nsteps
 # for the desired runtime
-sed -e "s/(RESTRAINT)/$restraint/g" \
-    -e "s/(NSTEPS)/$nstep/g" \
-    -e "s/(PRESSURE)/$pressure/g" \
-    -e "s/(DT)/$dt/g" \
-    -e "s/(PRODWRITE)/$prodwrite/g" \
-    < "$inpdir/production/Prod_skelly.mdin" > "$prodir/Prod_${runtime}h.mdin"
+if [[ ! -f $prodir/Prod_${runtime}h.mdin ]]; then
+    sed -e "s/(RESTRAINT)/$restraint/g" \
+        -e "s/(NSTEPS)/$nstep/g" \
+        -e "s/(PRESSURE)/$pressure/g" \
+        -e "s/(DT)/$dt/g" \
+        -e "s/(PRODWRITE)/$prodwrite/g" \
+        < "$inpdir/production/Prod_skelly.mdin" > "$prodir/Prod_${runtime}h.mdin"
+else
+    echo "Using existing Prod_${runtime}h.mdin"
+fi
 
 if [[ $msm -eq 0 ]]; then
     echo
