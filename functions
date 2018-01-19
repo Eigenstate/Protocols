@@ -138,7 +138,8 @@ function run_md {
                              -O \
                              -i "$inp" \
                              -o "${1}.mdout" -p "$prmtop" -c "$2" \
-                             -r "${1}.rst" -ref "$ref" -x "${1}.nc"
+                             -r "${1}.rst" -ref "$ref" -x "${1}.nc" \
+                             -amd "${1}.amdlog"
     fi
 
     # Remove write permissions but don't fail if you can't
