@@ -70,7 +70,7 @@ function start_minimization {
 
     chmod +x -f "$mindir/PROTOCOL.sh"
     cd "$mindir"
-    minjob+=($(sbatch --export=SHERLOCK="$SHERLOCK" "PROTOCOL.sh" | awk '{print $4}'))
+    minjob+=($(sbatch "PROTOCOL.sh" | awk '{print $4}'))
     cd - > /dev/null
 
     return 0
@@ -140,7 +140,7 @@ function start_equilibration {
         < "$inpdir/equilibration/PROTOCOL_skelly" > "$eqdir/PROTOCOL.sh"
 
     chmod +x -f "$eqdir/PROTOCOL.sh"
-    eqjob+=($(sbatch --export=SHERLOCK="$SHERLOCK" "PROTOCOL.sh" | awk '{print $4}'))
+    eqjob+=($(sbatch "PROTOCOL.sh" | awk '{print $4}'))
     cd - > /dev/null
     return 0
 }
@@ -192,8 +192,7 @@ function start_production {
 
     # Submit appropriate number of singleton runs as a big job array
     cd "$dir/production/$rev/$r"
-    prodjob+=($(sbatch --export=SHERLOCK="$SHERLOCK" \
-                       --dependency="$depline" \
+    prodjob+=($(sbatch --dependency="$depline" \
                        --array="1-${nruns}%1" \
                        "PROTOCOL.sh" | awk '{print $4}'))
     sleep 0.5
