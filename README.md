@@ -12,14 +12,17 @@ and all output files are prefixed with the number of the protocol that
 created them.
 
 Use *new\_protocol.sh* to create a protocol of the next available number.
-The script will prompt you for information needed to print a pretty 
+The script will prompt you for information needed to print a pretty
 header. I've included an example output here too.
 
 ## Simulations
+My main script, `submit_new`, will set up and run a new simulation.
+
+## Folder organization
 I make one folder for each task, and subfolders for subtasks.
 For example, if I am equilibrating a bunch of mutants, I have a folder
 called [protein name] with subfolders minimization, equilibration, etc, and
-in the equilibration folder there will be folders with the name of each 
+in the equilibration folder there will be folders with the name of each
 mutant.
 
 This way I can use common scripts and name everything the same as long as
@@ -43,7 +46,7 @@ created as output by a different task. That way if the dependent task is
 redone, the input file is always up to date.
 
 Please talk to me if any of this is unclear.
-Lab members, check out my directory in $PI\HOME on Sherlock to see how this
+Lab members, check out my directory in `$PI_HOME` on Sherlock to see how this
 is all laid out in practice.
 
 ## Files you might want

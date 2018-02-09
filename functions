@@ -124,7 +124,7 @@ function run_md {
         inp=$3
     fi
 
-    if [[ $SHERLOCK == 2 && $SLURM_NTASKS_PER_SOCKET == 1 ]]; then
+    if [[ $SLURM_NTASKS_PER_SOCKET == 1 ]]; then
         unset CUDA_VISIBLE_DEVICES # HACK HACK HACK
         $AMBERHOME/bin/pmemd.cuda \
         -O \
