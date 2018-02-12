@@ -5,23 +5,18 @@
 # Built 11 Dec 2017, RMB
 # No effort made for Sherlock 1
 
-if [[ $SHERLOCK == 2 ]]; then
-    module unload icc ifort imkl
+module unload icc ifort imkl
 
-    module load cuda/8.0.61
-    module load devel
+module load cuda/8.0.61
+module load devel
 
-    # gcc + openmpi
-    module load openmpi
-    export MPI_HOME="/share/software/user/open/openmpi/2.1.1/"
-    export PATH="$MPI_HOME/bin:$PATH"                        # get mpicc etc
-    export CPATH="$MPI_HOME/include:$CPATH"                  # language independent include path
-    export LD_LIBRARY_PATH="$MPI_HOME/lib64:$LD_LIBRARY_PATH"  # search path at runtime
-    export LIBRARY_PATH="$MPI_HOME/lib64:$LIBRARY_PATH"     # search path at compile time (ld invocation)
-else
-    echo "Sherlock \"$SHERLOCK\" is unsupported by this amber"
-    exit 1
-fi
+# gcc + openmpi
+module load openmpi
+export MPI_HOME="/share/software/user/open/openmpi/2.1.1/"
+export PATH="$MPI_HOME/bin:$PATH"                        # get mpicc etc
+export CPATH="$MPI_HOME/include:$CPATH"                  # language independent include path
+export LD_LIBRARY_PATH="$MPI_HOME/lib64:$LD_LIBRARY_PATH"  # search path at runtime
+export LIBRARY_PATH="$MPI_HOME/lib64:$LIBRARY_PATH"     # search path at compile time (ld invocation)
 
 # Make -lcuda work
 export LD_LIBRARY_PATH="$CUDA_HOME/lib64/stubs:$LD_LIBRARY_PATH"

@@ -1,33 +1,21 @@
 #!/bin/bash
 
+# Sometimes PI home is unset. Why? I dont know AUGH
+export PI_HOME="/share/PI/rondror"
+
+# Okay sometimes module command is not defined here. That's dumb
+# Let's setup the module environment manually
+export MODULESHOME=/share/sw/free/lmod/lmod
+export BASH_ENV=$MODULESHOME/init/bash
+export MANPATH=$($MODULESHOME/libexec/addto MANPATH $MODULESHOME/share/man)
+source $BASH_ENV >/dev/null                 # Module Support
+export LMOD_PACKAGE_PATH=/share/sw/modules/ # where SitePackage.lua resides
+export MODULEPATH_ROOT=/share/sw/modules
+export MODULEPATH=/share/sw/modules/Core
+
 # Use these intel and cuda
-if [[ $SHERLOCK == 1 ]]; then
-
-    # Sometimes PI home is unset. Why? I dont know AUGH
-    export PI_HOME="/share/PI/rondror"
-
-    # Okay sometimes module command is not defined here. That's dumb
-    # Let's setup the module environment manually
-    export MODULESHOME=/share/sw/free/lmod/lmod
-    export BASH_ENV=$MODULESHOME/init/bash
-    export MANPATH=$($MODULESHOME/libexec/addto MANPATH $MODULESHOME/share/man)
-    source $BASH_ENV >/dev/null                 # Module Support
-    export LMOD_PACKAGE_PATH=/share/sw/modules/ # where SitePackage.lua resides
-    export MODULEPATH_ROOT=/share/sw/modules
-    export MODULEPATH=/share/sw/modules/Core
-
-    module load intel/2015
-    module load cuda/8.0
-
-# For sherlock 2, use the new installation
-elif [[ $SHERLOCK == 2 ]]; then
-    export AMBERHOME="$PI_HOME/software/amber16_gnu"
-    . $AMBERHOME/setup_amber.sh
-    return
-else
-    echo "SHERLOCK is unset! Doing nothing"
-    return
-fi
+module load intel/2015
+module load cuda/8.0
 
 # Amber wants MKL_HOME defined but module sets MKLROOT
 export MKL_HOME=$MKLROOT
@@ -49,7 +37,7 @@ export LD_LIBRARY_PATH="$CUDA_HOME/lib64/stubs:$LD_LIBRARY_PATH"
 export LIBRARY_PATH="$CUDA_HOME/lib64/stubs:$LIBRARY_PATH"
 
 # Set some envs
-export AMBERHOME="$PI_HOME/software/amber_dev"
+export AMBERHOME="$PI_HOME/software/amber16_intel"
 export PATH="$AMBERHOME/bin:$PATH"
 export LD_LIBRARY_PATH="$AMBERHOME/lib:$LD_LIBRARY_PATH"
 
