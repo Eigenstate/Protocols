@@ -38,7 +38,7 @@ prmtop="(PRMTOP)"
 ref="(REF)"
 
 # Load necessary modules
-source "/share/PI/rondror/software/amber_dev/setup_amber.sh"
+source "$PI_HOME/software/amber_dev/setup_amber.sh"
 
 # Source the common run functions and print some info
 . (FUNFILE)

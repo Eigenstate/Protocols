@@ -40,7 +40,7 @@ set -e
 print_node_jobs
 
 # Load necessary modules
-source "/share/PI/rondror/software/amber_dev/setup_amber.sh"
+source "$PI_HOME/software/amber_dev/setup_amber.sh"
 
 # Minimize holding the protein really fixed and the lipid mostly fixed
 if [[ ! -f "min1.rst" ]]; then

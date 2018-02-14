@@ -41,7 +41,7 @@ cd "$inpdir"
 set -e
 
 # Load necessary modules
-source "/share/PI/rondror/software/amber_dev/setup_amber.sh"
+source "$PI_HOME/software/amber_dev/setup_amber.sh"
 
 # Source the common run functions
 . (FUNFILE)
