@@ -49,8 +49,12 @@ function start_minimization {
     fi
     mindir="$dir/minimization/$rev/$r"
 
-    # Copy input files
-    cp $inpdir/minimization/*.mdin $mindir
+    # Create input files with correct restrained residues
+    cd "$inpdir/minimization"
+    for i in $(ls *min.mdin); do
+        sed $resnameargs \
+            < "$i" > "$mindir/$i"
+    done
 
     # Create protocol file
     sed -e "s@(REV)@$rev@g" \
@@ -96,11 +100,13 @@ function start_equilibration {
     sed -e "s/(DT)/$dt/g" \
         -e "s/(HEATWRITE)/$heatwrite/g" \
         -e "s/(NSTEPS)/$(echo "scale=0; 12.5/$dt" | bc)/g" \
+        $resnameargs \
         < "$inpdir/equilibration/Heat_1.mdin" > "$eqdir/Heat_1.mdin"
     sed -e "s/(DT)/$dt/g" \
         -e "s/(PRESSURE)/$pressure/g" \
         -e "s/(HEATWRITE)/$heatwrite/g" \
         -e "s/(NSTEPS)/$(echo "scale=0; 125/$dt" | bc)/g" \
+        $resnameargs \
         < "$inpdir/equilibration/Heat_2.mdin" > "$eqdir/Heat_2.mdin"
 
     # Now do the equilibration mdin files, each is 2 ns
@@ -110,6 +116,7 @@ function start_equilibration {
             -e "s/(PRESSURE)/$pressure/g"\
             -e "s/(EQWRITE)/$eqwrite/g" \
             -e "s/(NSTEPS)/$(echo "scale=0; 2000/$dt" | bc)/g" \
+            $resnameargs \
             < "$i" > "$eqdir/$i"
     done
     cd - > /dev/null
@@ -419,7 +426,8 @@ stept=$(echo "scale=0; $runtime * $speed / 24" | bc ) # number of nanoseconds
 if [[ "$resubmit" == "1" ]]; then
     nruns=5
 else
-    nruns=$(echo $(printf %.0f $(echo "($nsec/$stept+ 0.5)/1" | bc -l))) # gross bc it needs to round up
+    # Need to round up number of runs
+    nruns=$(echo $(printf %.0f $(echo "($nsec/$stept+ 0.5)/1" | bc -l)))
 fi
 if [[ "$nruns" -eq "0" ]]; then
     echo "ERROR: Submitting 0 runs? Something wrong"
@@ -441,6 +449,8 @@ if [[ ! -e "$inpdir/minimization/PROTOCOL_skelly" || \
     exit 1
 fi
 
+# Obtain restraint syntax for water, ions, lipids
+resnameargs="$($inpdir/get_residue_names.py "$prmtop")"
 
 # Restraints
 if [[ ! -z "$restrainres" ]]; then
@@ -509,6 +519,7 @@ if [[ ! -f $prodir/Eq_6.mdin ]]; then
         -e "s/(PRESSURE)/$pressure/g" \
         -e "s/(DT)/$dt/g" \
         -e "s/(EQWRITE)/$eqwrite/g" \
+        $resnameargs \
         < "$inpdir/production/Eq_6.mdin" > "$prodir/Eq_6.mdin"
 else
     echo "Using existing Eq_6.mdin"
@@ -522,6 +533,7 @@ if [[ ! -f $prodir/Prod_${runtime}h.mdin ]]; then
         -e "s/(PRESSURE)/$pressure/g" \
         -e "s/(DT)/$dt/g" \
         -e "s/(PRODWRITE)/$prodwrite/g" \
+        $resnameargs \
         < "$inpdir/production/Prod_skelly.mdin" > "$prodir/Prod_${runtime}h.mdin"
 else
     echo "Using existing Prod_${runtime}h.mdin"

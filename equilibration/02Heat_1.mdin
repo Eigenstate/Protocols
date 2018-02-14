@@ -19,8 +19,8 @@ Lipid 128 heating 100K
   cut=9.0,
   ioutfm=1,       ! Write a binary (netcdf) trajectory
   ntxo=2,         ! Write binary restart files
-  restraintmask	= ':POPC', restraint_wt=10.0, !hold the lipid fixed
-  restraintmask = '!(:POPC | :TIP3 | :SOD | :CLA)', restraint_wt=10.0, !hold the protein fixed 
+  restraintmask	= '(LIPID)', restraint_wt=10.0, !hold the lipid fixed
+  restraintmask = '!((LIPID) | (WATER) | (ION))', restraint_wt=10.0, !hold the protein fixed 
 
   nstlim=(NSTEPS),    ! Number of MD steps
   dt=(DT),      ! Timestep (ps)

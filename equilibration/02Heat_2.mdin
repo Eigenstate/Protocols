@@ -16,8 +16,8 @@ Lipid 128 heating 303K
   cut=9.0,
   ioutfm=1,
   ntxo=2,
-  restraintmask	= ':POPC', restraint_wt=10.0, !hold the lipid fixed
-  restraintmask = '!(:POPC | :TIP3 | :SOD | :CLA)', restraint_wt = 10.0 !hold the protein fixed
+  restraintmask	= '(LIPID)', restraint_wt=10.0, !hold the lipid fixed
+  restraintmask = '!((LIPID) | (WATER) | (ION))', restraint_wt = 10.0 !hold the protein fixed
 
   nstlim=(NSTEPS), ! Number of MD steps
   dt=(DT),

@@ -16,7 +16,7 @@
   cut=9.0,
   ioutfm=1,
   ntxo=2,
-  restraintmask = '!(:POPC | :TIP3 | :SOD | :CLA)', restraint_wt=4.0, !hold protein fixed
+  restraintmask = '!((LIPID) | (WATER) | (ION))', restraint_wt=4.0, !hold protein fixed
 
   dt=(DT),      
   nstlim=(NSTEPS),

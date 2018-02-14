@@ -8,5 +8,5 @@ Final minimization without restraints
   ntpr=50, ntwr=200, ! previous 2k
   cut=9.0,
   ntr=1,
-  restraintmask = '!(:POPC | :TIP3 | :SOD | :CLA)', restraint_wt=1.0
+  restraintmask = '!((LIPID) | (WATER) | (ION))', restraint_wt=1.0
 /
