@@ -522,7 +522,7 @@ prodir="$dir/production/$rev"
 # Nsteps is for 5 ns of runtime in the production final equilibration
 if [[ ! -f $prodir/Eq_6.mdin ]]; then
     eval \
-    sed "-e \"s/(NSTEPS)/$(echo "scale=0; 5000/$dt" | bc)/g\" \
+    sed "-e \"s/(NSTEPS)/$(echo "scale=0; 5000/$eqdt" | bc)/g\" \
          -e \"s/(EQWRITE)/$eqwrite/g\"" \
         $sedargs \
         < "$inpdir/production/Eq_6.mdin" > "$prodir/Eq_6.mdin"

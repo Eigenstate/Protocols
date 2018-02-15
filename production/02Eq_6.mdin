@@ -16,7 +16,7 @@ Unrestrained equilibration 310K 5ns
   ioutfm=1,
   ntxo=2,
 
-  dt=(DT),
+  dt=(EQDT),
   nstlim=(NSTEPS),
   (EQWRITE)
   (RESTRAINT)
