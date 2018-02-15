@@ -72,52 +72,34 @@ if [[ ! -f "Heat_2.rst" ]]; then
     run_md "Heat_2" "Heat_1.rst"
 fi
 
-# Equilibrate with restraint 5 on protein only for 2ns
-# in the NPT ensemble, 2.5fs timestep
-if [[ ! -f "Eq_1.rst" ]]; then
-    echo "Restraint 5 equilibration...of $SLURM_JOB_NAME"
-    check_previous "Heat_2.mdout" "Heat_2"
-    run_md "Eq_1" "Heat_2.rst"
-fi
+# Loop through all available equilibration input files
+# This allows flexibility for many equilibration scenarios
+# Since I have set -e, any errors will kill this run and abort the loop
+for inpfile in $(ls Eq_*.mdin | sort); do
+    # Get run number inpfile  Eq_2.mdin
+    eqnum=${inpfile%.mdin}; # Eq_2
+    eqnum=${eqnum#Eq_}      # 2
 
-# Decrease restraint on protein to 4 for 2ns
-# in the NPT ensemble, 2.5fs timestep
-if [[ ! -f "Eq_2.rst" ]]; then
-    echo "Restraint 4 equilibration...of $SLURM_JOB_NAME"
-    check_previous "Eq_1.mdout" "Eq_1"
-    run_md "Eq_2" "Eq_1.rst"
-fi
+    # If run already done, go to next input file
+    if [[ -f "Eq_${eqnum}.rst" ]]; then
+        continue
+    fi
 
-# Decrease restraint on protein to 3 for 2ns
-# in the NPT ensemble, 2.5fs timestep
-if [[ ! -f "Eq_3.rst" ]]; then
-    echo "Restraint 3 equilibration...of $SLURM_JOB_NAME"
-    check_previous "Eq_2.mdout" "Eq_2"
-    run_md "Eq_3" "Eq_2.rst"
-fi
+    # Determine previous run name
+    if [[ $eqnum -eq 1 ]]; then
+        prevrun="Heat_2"
+    else
+        prevrun="Eq_$((eqnum-1))"
+    fi
 
-# Decrease restraint on protein to 2 for 2ns
-# in the NPT ensemble, 2.5fs timestep
-if [[ ! -f "Eq_4.rst" ]]; then
-    echo "Restraint 2 equilibration...of $SLURM_JOB_NAME"
-    check_previous "Eq_3.mdout" "Eq_3"
-    run_md "Eq_4" "Eq_3.rst"
-fi
+    # Check input data are valid and run the simulation
+    echo "Running equilibration #$eqnum of $SLURM_JOB_NAME"
+    check_previous "${prevrun}.mdout" "$prevrun"
+    run_md "Eq_${eqnum}" "${prevrun}.rst"
+done
 
-# Decrease restraint on protein to 1 for 2ns
-# in the NPT ensemble, 2.5fs timestep
-if [[ ! -f "Eq_5.rst" ]]; then
-    echo "Restraint 1 equilibration...of $SLURM_JOB_NAME"
-    check_previous "Eq_4.mdout" "Eq_4"
-    run_md "Eq_5" "Eq_4.rst"
-fi
-
-# No-restraint equilibration now done at beginning of production run
-# Ensure the last equilibration completed successfully before quitting
-check_previous "Eq_5.mdout" "Eq_5"
-
-# Total of 10ns equilibration now performed.
-# Relevant output files are the .nc trajectories for analysis
-# and the Eq_6.rst for use in production simulations
+# Now symlink the final equilibration rst so that the production
+# jobs can find it regardless of the number of equilibration steps
+ln -s "Eq_${eqnum}.rst" "Eq_final.rst"
 echo "Done with equilibration of: $SLURM_JOB_NAME"
 date

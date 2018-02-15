@@ -61,7 +61,7 @@ fi
 if [[ ! -f "Eq_6.rst" ]]; then
     echo "No restraint equilibration for initial run: $SLURM_JOB_NAME"
     rm -f "Prod_"*
-    run_md "Eq_6" "(EQDIR)/Eq_5.rst" "$inpdir/Eq_6.mdin" nochmod
+    run_md "Eq_6" "(EQDIR)/Eq_final.rst" "$inpdir/Eq_6.mdin" nochmod
 fi
 
 # Simulate at 310K in the NPT ensemble with 2.0fs timestep

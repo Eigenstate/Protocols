@@ -32,6 +32,7 @@ function usage {
   echo "  --resubmit to hook into resubmit script"
   echo "  --msm <rep> for MSM mode: no output, specify single replicate number."
   echo "  --gpus <n> for number of GPUs per simulation. Defaults to 1"
+  echo "  --gentle-equilibration for 2fs equilibration timestep"
 }
 
 declare -a minjob
@@ -102,13 +103,15 @@ function start_equilibration {
         < "$inpdir/equilibration/Heat_2.mdin" > "$eqdir/Heat_2.mdin"
 
     # Now do the equilibration mdin files, each is 2 ns
+    # Weights go from 5,4,3,2,1 as equilibration number increases
     cd "$inpdir/equilibration/"
-    for i in $(ls Eq*mdin); do
+    for ((i=1; i<=$maxeqs; i++)); do
         eval \
         sed "-e \"s/(EQWRITE)/$eqwrite/g\" \
-             -e \"s/(NSTEPS)/$(echo "scale=0; 2000/$dt" | bc)/g\"" \
+             -e \"s/(NSTEPS)/$(echo "scale=0; 2000/$eqdt" | bc)/g\" \
+             -e \"s/(WEIGHT)/$((maxeqs-i+1)).0\"" \
             $sedargs \
-            < "$i" > "$eqdir/$i"
+            < "$inpdir/equilibration/Eq_skelly.mdin" > "$eqdir/Eq_$i"
     done
     cd - > /dev/null
 
@@ -210,6 +213,7 @@ pressure=""
 resubmit=0
 msm=0
 ngpus=1
+gentleq=0
 
 # Parse input arguments
 while [[ "$#" > 0 ]]; do
@@ -283,6 +287,9 @@ while [[ "$#" > 0 ]]; do
     "--gpus")
     ngpus="$2"
     shift
+    ;;
+    "--gentle-equilibration")
+    gentleq=1
     ;;
     *)
     usage
@@ -376,19 +383,33 @@ chmod a-w -f "$inpcrd"
 # Calculate number of steps to run with given speed and queue jobstep size
 if [[ $hmr == "0" ]]; then
     dt=0.0025
+    eqdt=0.0025
     heatwrite="ntpr=100, ntwr=10000, ntwx=1000,"
     eqwrite="ntpr=5000, ntwr=50000, ntwx=10000,"
     prodwrite="ntpr=25000, ntwr=80000, ntwx=80000,"
 elif [[ $hmr == "1" ]]; then
     dt=0.004
+    eqdt=0.004
     heatwrite="ntpr=50, ntwr=5000, ntwx=500,"
     eqwrite="ntpr=3125, ntwr=31250, ntwx=6250,"
     prodwrite="ntpr=15625, ntwr=50000, ntwx=50000,"
 elif [[ $hmr == "2" ]]; then
     dt=0.002
+    eqdt=0.002
     heatwrite="ntpr=100, ntwr=10000, ntwx=1000,"
     eqwrite="ntpr=6250, ntwr=62500, ntwx=12500,"
     prodwrite="ntpr=31250, ntwr=100000, ntwx=100000,"
+fi
+
+# Set timesteps differently for gentle equilibration
+# Still 5 equilibration steps so whatever
+if [[ $gentleq == 1 ]]; then
+    eqdt=0.002
+    heatwrite="ntpr=100, ntwr=10000, ntwx=1000,"
+    eqwrite="ntpr=6250, ntwr=62500, ntwx=12500,"
+    maxeqs=5
+else
+    maxeqs=5
 fi
 
 nstep=$(echo "scale=0; $runtime * $speed * 1000 / $dt / 24" | bc) # number of steps
@@ -419,7 +440,6 @@ if [[ ! -e "$inpdir/minimization/PROTOCOL_skelly" || \
     exit 1
 fi
 
-
 # Restraints
 if [[ ! -z "$restrainres" ]]; then
   restraint="ntr=1,\n  restraintmask=':${restrainres} \& !@H=',\n  restraint_wt=5.0,\n"
@@ -433,6 +453,7 @@ resnameargs="$($inpdir/get_residue_names.py "$prmtop")"
 # Accumulate sed arguments common to all files
 # These vary in sed delimiter because @ or / can be in some variables.
 sedargs="-e \"s/(DT)/$dt/g\" \
+         -e \"s/(EQDT)/$eqdt/g\" \
          -e \"s/(PRESSURE)/$pressure/g\" \
          -e \"s@(PRMTOP)@$prmtop@g\" \
          -e \"s@(REV)@$rev@g\" \
