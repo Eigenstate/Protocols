@@ -4,8 +4,8 @@ Lipid 128 heating 100K
   ntx=1,          ! Positions read formatted with no initial velocities
   irest=0,        ! No restart
   ntc=2,          ! SHAKE on for bonds with hydrogen
-  WATNAM='TIP3',  
-  OWTNM='OH2',
+  WATNAM='(WATER)',
+  OWTNM='(WATERO)',
   ntf=2,          ! No force evaluation for bonds with hydrogen
   tol=0.0000001,  ! SHAKE tolerance
   ntt=3,          ! Langevin dynamics
@@ -20,13 +20,13 @@ Lipid 128 heating 100K
   ioutfm=1,       ! Write a binary (netcdf) trajectory
   ntxo=2,         ! Write binary restart files
   restraintmask	= '(LIPID)', restraint_wt=10.0, !hold the lipid fixed
-  restraintmask = '!((LIPID) | (WATER) | (ION))', restraint_wt=10.0, !hold the protein fixed 
+  restraintmask = '!((LIPID) | (WATER) | (ION))', restraint_wt=10.0, !hold the protein fixed
 
   nstlim=(NSTEPS),    ! Number of MD steps
   dt=(DT),      ! Timestep (ps)
   (HEATWRITE)
  /
- &wt 
+ &wt
   type='TEMP0',   ! Varies the target temperature TEMP0
   istep1=0,       ! Initial step
   istep2=(NSTEPS),    ! Final step

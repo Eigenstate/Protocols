@@ -2,23 +2,23 @@
  &cntrl
   imin=0,
   ntx=5,
-  irest=1, 
+  irest=1,
   ntc=2,
   ntf=2,
-  WATNAM='TIP3',                   
-  OWTNM='OH2',
+  WATNAM='(WATER)',
+  OWTNM='(WATERO)',
   tol=0.0000001,
   ntt=3,
   gamma_ln=1.0,
   ntr=1,
   temp0=310.0,
-  ig=-1, 
+  ig=-1,
   cut=9.0,
   ioutfm=1,
   ntxo=2,
   restraintmask = '!((LIPID) | (WATER) | (ION))', restraint_wt=1.0, !hold protein fixed
 
-  dt=(DT),      
+  dt=(DT),
   nstlim=(NSTEPS),
   (EQWRITE)
   (PRESSURE)

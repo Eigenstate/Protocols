@@ -2,16 +2,16 @@ Unrestrained equilibration 310K 5ns
  &cntrl
   imin=0,
   ntx=5,
-  irest=1, 
+  irest=1,
   ntc=2,
   ntf=2,
-  WATNAM='TIP3',                   
-  OWTNM='OH2',
+  WATNAM='(WATER)',
+  OWTNM='(WATERO)',
   tol=0.0000001,
   ntt=3,
   gamma_ln=1.0,
   temp0=310.0,
-  ig=-1, 
+  ig=-1,
   ntb=2,
   ntp=3,
   csurften=3,
@@ -20,7 +20,7 @@ Unrestrained equilibration 310K 5ns
   ioutfm=1,
   ntxo=2,
 
-  dt=(DT),      
+  dt=(DT),
   nstlim=(NSTEPS),
   (EQWRITE)
  /
