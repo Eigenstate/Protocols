@@ -20,7 +20,7 @@ Lipid 128 heating 303K
   restraintmask = '!((LIPID) | (WATER) | (ION))', restraint_wt = 10.0 !hold the protein fixed
 
   nstlim=(NSTEPS), ! Number of MD steps
-  dt=(DT),
+  dt=(EQDT),
   (HEATWRITE)
   (PRESSURE)
   taup=2.0,     ! Pressure relaxation time (ps), increased from default 1.0 for heating

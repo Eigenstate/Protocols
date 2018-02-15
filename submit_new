@@ -34,7 +34,7 @@ function usage {
   echo "  --gpus <n> for number of GPUs per simulation. Defaults to 1"
   echo "  --gentle-equilibration for 2fs equilibration timestep"
 }
-
+set -e
 declare -a minjob
 declare -a eqjob
 declare -a prodjob # Global variable for all production jobs
@@ -109,9 +109,9 @@ function start_equilibration {
         eval \
         sed "-e \"s/(EQWRITE)/$eqwrite/g\" \
              -e \"s/(NSTEPS)/$(echo "scale=0; 2000/$eqdt" | bc)/g\" \
-             -e \"s/(WEIGHT)/$((maxeqs-i+1)).0\"" \
+             -e \"s/(WEIGHT)/$((maxeqs-i+1)).0/g\"" \
             $sedargs \
-            < "$inpdir/equilibration/Eq_skelly.mdin" > "$eqdir/Eq_$i"
+            < "$inpdir/equilibration/Eq_skelly.mdin" > "$eqdir/Eq_$i.mdin"
     done
     cd - > /dev/null
 
