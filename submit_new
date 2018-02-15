@@ -60,8 +60,8 @@ function start_minimization {
     sed "-e \"s@(QOS)@$minqos@g\" \
          -e \"s@(PART)@$minpart@g\" \
          -e \"s@(REP)@$r@g\" \
-         -e \"s@(INP)@$mindir@g\"
-         $sedargs"
+         -e \"s@(INP)@$mindir@g\"" \
+         $sedargs \
         < "$inpdir/minimization/PROTOCOL_skelly" > "$mindir/PROTOCOL.sh"
 
     chmod +x -f "$mindir/PROTOCOL.sh"
@@ -91,13 +91,14 @@ function start_equilibration {
     # First is 12.5 ps, then second is 125 ps
     eval \
     sed "-e \"s/(HEATWRITE)/$heatwrite/g\" \
-         -e \"s/(NSTEPS)/$(echo "scale=0; 12.5/$dt" | bc)/g\" \
-        $sedargs" \
+         -e \"s/(NSTEPS)/$(echo "scale=0; 12.5/$dt" | bc)/g\"" \
+        $sedargs \
         < "$inpdir/equilibration/Heat_1.mdin" > "$eqdir/Heat_1.mdin"
+
     eval \
     sed "-e \"s/(HEATWRITE)/$heatwrite/g\" \
-         -e \"s/(NSTEPS)/$(echo \"scale=0; 125/$dt\" | bc)/g\" \
-        $sedargs" \
+         -e \"s/(NSTEPS)/$(echo "scale=0; 125/$dt" | bc)/g\"" \
+        $sedargs \
         < "$inpdir/equilibration/Heat_2.mdin" > "$eqdir/Heat_2.mdin"
 
     # Now do the equilibration mdin files, each is 2 ns
@@ -105,8 +106,8 @@ function start_equilibration {
     for i in $(ls Eq*mdin); do
         eval \
         sed "-e \"s/(EQWRITE)/$eqwrite/g\" \
-             -e \"s/(NSTEPS)/$(echo "scale=0; 2000/$dt" | bc)/g\" \
-            $sedargs" \
+             -e \"s/(NSTEPS)/$(echo "scale=0; 2000/$dt" | bc)/g\"" \
+            $sedargs \
             < "$i" > "$eqdir/$i"
     done
     cd - > /dev/null
@@ -124,8 +125,8 @@ function start_equilibration {
          -e \"s@(PART)@$part@g\" \
          -e \"s@(REP)@$r@g\" \
          -e \"s@(INP)@$eqdir@g\" \
-         -e \"s@(RUNTIME)@$eqtime@g\" \
-         $sedargs" \
+         -e \"s@(RUNTIME)@$eqtime@g\"" \
+         $sedargs \
         < "$inpdir/equilibration/PROTOCOL_skelly" > "$eqdir/PROTOCOL.sh"
 
     chmod +x -f "$eqdir/PROTOCOL.sh"
@@ -160,8 +161,8 @@ function start_production {
          -e \"s@(QOS)@$qos@g\" \
          -e \"s@(PART)@$part@g\" \
          -e \"s@(REP)@$r@g\" \
-         -e \"s@(RUNTIME)@$runtime@g\" \
-         $sedargs" \
+         -e \"s@(RUNTIME)@$runtime@g\"" \
+         $sedargs \
         < "${inpdir}/production/PROTOCOL_skelly" > "$dir/production/$rev/$r/PROTOCOL.sh"
 
     chmod +x -f "$dir/production/$rev/$r/PROTOCOL.sh"
@@ -501,8 +502,8 @@ prodir="$dir/production/$rev"
 if [[ ! -f $prodir/Eq_6.mdin ]]; then
     eval \
     sed "-e \"s/(NSTEPS)/$(echo "scale=0; 5000/$dt" | bc)/g\" \
-         -e \"s/(EQWRITE)/$eqwrite/g\" \
-        $sedargs" \
+         -e \"s/(EQWRITE)/$eqwrite/g\"" \
+        $sedargs \
         < "$inpdir/production/Eq_6.mdin" > "$prodir/Eq_6.mdin"
 else
     echo "Using existing Eq_6.mdin"
@@ -512,9 +513,9 @@ fi
 # for the desired runtime
 if [[ ! -f $prodir/Prod_${runtime}h.mdin ]]; then
     eval \
-    sed "-e \"s/(NSTEPS)/$nstep/g\" \
-         -e \"s/(PRODWRITE)/$prodwrite/g\" \
-         $sedargs" \
+    "sed -e \"s/(NSTEPS)/$nstep/g\" \
+         -e \"s/(PRODWRITE)/$prodwrite/g\"" \
+         $sedargs \
         < "$inpdir/production/Prod_skelly.mdin" > "$prodir/Prod_${runtime}h.mdin"
 else
     echo "Using existing Prod_${runtime}h.mdin"

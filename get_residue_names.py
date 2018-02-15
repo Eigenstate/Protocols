@@ -20,17 +20,17 @@ if __name__ == "__main__":
     # Get the lipid selection. For AMBER, only the head group can be picked up
     # by this, so use the "same fragment" syntax to get the tails, too.
     lipids = set(atomsel("same fragment as lipid", mid).get("resname"))
-    lipcommand = "-e 's/(LIPID)/(:%s)/g' " % ("|:".join(lipids))
+    lipcommand = "-e \"s/(LIPID)/(:%s)/g\" " % ("|:".join(lipids))
     result += lipcommand
 
     # Now get all the ions
     ionids = set(atomsel("ion", mid).get("resname"))
-    ioncommand = "-e 's/(ION)/(:%s)/g' " % ("|:".join(ionids))
+    ioncommand = "-e \"s/(ION)/(:%s)/g\" " % ("|:".join(ionids))
     result += ioncommand
 
     # Now the water residue name
     watids = set(atomsel("water", mid).get("resname"))
-    watcommand = "-e 's/(WATER)/(:%s)/g' " % ("|:".join(watids))
+    watcommand = "-e \"s/(WATER)/%s/g\" " % ("|:".join(watids))
     result += watcommand
 
     # Finally, the water oxygen atom name, for shake
@@ -38,7 +38,7 @@ if __name__ == "__main__":
     if len(wtoids) > 1:
         raise ValueError("Found more than one water oxygen name. "
                          "Names were: '%s'" % ", ".join(wtoids))
-    wtocommand = "-e 's/(WATERO)/%s/g' " % wtoids.pop()
+    wtocommand = "-e \"s/(WATERO)/%s/g\" " % wtoids.pop()
     result += wtocommand
 
     molecule.delete(mid)
