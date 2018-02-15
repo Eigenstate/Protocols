@@ -52,24 +52,16 @@ function start_minimization {
     # Create input files with correct restrained residues
     cd "$inpdir/minimization"
     for i in $(ls *min.mdin); do
-        sed $resnameargs \
-            < "$i" > "$mindir/$i"
+        eval sed $sedargs < "$i" > "$mindir/$i"
     done
 
     # Create protocol file
-    sed -e "s@(REV)@$rev@g" \
-        -e "s@(PRMTOP)@$prmtop@g" \
-        -e "s@(INPCRD)@$inpcrd@g" \
-        -e "s@(NAM)@$name@g" \
-        -e "s@(NOW)@$(date)@g" \
-        -e "s@(QOS)@$minqos@g" \
-        -e "s@(PART)@$minpart@g" \
-        -e "s@(REP)@$r@g" \
-        -e "s@(INP)@$mindir@g" \
-        -e "s@(DIR)@$dir@g" \
-        -e "s@(WHOAMI)@$(whoami)@g" \
-        -e "s@(REF)@$inpcrd@g" \
-        -e "s@(FUNFILE)@$inpdir/functions@g" \
+    eval \
+    sed "-e \"s@(QOS)@$minqos@g\" \
+         -e \"s@(PART)@$minpart@g\" \
+         -e \"s@(REP)@$r@g\" \
+         -e \"s@(INP)@$mindir@g\"
+         $sedargs"
         < "$inpdir/minimization/PROTOCOL_skelly" > "$mindir/PROTOCOL.sh"
 
     chmod +x -f "$mindir/PROTOCOL.sh"
@@ -97,26 +89,24 @@ function start_equilibration {
     # Create heating mdin files. These are a bit different than other
     # equlibration files so do them separately
     # First is 12.5 ps, then second is 125 ps
-    sed -e "s/(DT)/$dt/g" \
-        -e "s/(HEATWRITE)/$heatwrite/g" \
-        -e "s/(NSTEPS)/$(echo "scale=0; 12.5/$dt" | bc)/g" \
-        $resnameargs \
+    eval \
+    sed "-e \"s/(HEATWRITE)/$heatwrite/g\" \
+         -e \"s/(NSTEPS)/$(echo "scale=0; 12.5/$dt" | bc)/g\" \
+        $sedargs" \
         < "$inpdir/equilibration/Heat_1.mdin" > "$eqdir/Heat_1.mdin"
-    sed -e "s/(DT)/$dt/g" \
-        -e "s/(PRESSURE)/$pressure/g" \
-        -e "s/(HEATWRITE)/$heatwrite/g" \
-        -e "s/(NSTEPS)/$(echo "scale=0; 125/$dt" | bc)/g" \
-        $resnameargs \
+    eval \
+    sed "-e \"s/(HEATWRITE)/$heatwrite/g\" \
+         -e \"s/(NSTEPS)/$(echo \"scale=0; 125/$dt\" | bc)/g\" \
+        $sedargs" \
         < "$inpdir/equilibration/Heat_2.mdin" > "$eqdir/Heat_2.mdin"
 
     # Now do the equilibration mdin files, each is 2 ns
     cd "$inpdir/equilibration/"
     for i in $(ls Eq*mdin); do
-        sed -e "s/(DT)/$dt/g" \
-            -e "s/(PRESSURE)/$pressure/g"\
-            -e "s/(EQWRITE)/$eqwrite/g" \
-            -e "s/(NSTEPS)/$(echo "scale=0; 2000/$dt" | bc)/g" \
-            $resnameargs \
+        eval \
+        sed "-e \"s/(EQWRITE)/$eqwrite/g\" \
+             -e \"s/(NSTEPS)/$(echo "scale=0; 2000/$dt" | bc)/g\" \
+            $sedargs" \
             < "$i" > "$eqdir/$i"
     done
     cd - > /dev/null
@@ -127,23 +117,15 @@ function start_equilibration {
         echo "Equilibration..."
     fi
 
-    sed -e "s@(REV)@$rev@g" \
-        -e "s@(MINNUM)@$minjob@g" \
-        -e "s@(PRMTOP)@$prmtop@g" \
-        -e "s@(RST)@$mindir/min3.rst@g" \
-        -e "s@(DIR)@$dir@g" \
-        -e "s@(NAM)@$name@g" \
-        -e "s@(NOW)@$(date)@g" \
-        -e "s@(QOS)@$qos@g" \
-        -e "s@(PART)@$part@g" \
-        -e "s@(REP)@$r@g" \
-        -e "s@(INP)@$eqdir@g" \
-        -e "s@(P2P)@$inpdir/gpuP2PCheck@" \
-        -e "s@(WHOAMI)@$(whoami)@g" \
-        -e "s@(REF)@$reference@g" \
-        -e "s@(FUNFILE)@$inpdir/functions@g" \
-        -e "s@(GPUS)@$ngpus@g" \
-        -e "s@(RUNTIME)@$eqtime@g" \
+    eval \
+    sed "-e \"s@(MINNUM)@$minjob@g\" \
+         -e \"s@(RST)@$mindir/min3.rst@g\" \
+         -e \"s@(QOS)@$qos@g\" \
+         -e \"s@(PART)@$part@g\" \
+         -e \"s@(REP)@$r@g\" \
+         -e \"s@(INP)@$eqdir@g\" \
+         -e \"s@(RUNTIME)@$eqtime@g\" \
+         $sedargs" \
         < "$inpdir/equilibration/PROTOCOL_skelly" > "$eqdir/PROTOCOL.sh"
 
     chmod +x -f "$eqdir/PROTOCOL.sh"
@@ -172,28 +154,15 @@ function start_production {
         echo "  Replicate $r..."
     fi
 
-    sed -e "s@(REV)@$rev@g" \
-        -e "s@(PRMTOP)@$prmtop@g" \
-        -e "s@(DIR)@$dir@g" \
-        -e "s@(EQDIR)@$eqdir@g" \
-        -e "s@(NAM)@$name@g" \
-        -e "s@(NOW)@$(date)@g" \
-        -e "s@(INP)@$prodir@g" \
-        -e "s@(QOS)@$qos@g" \
-        -e "s@(PART)@$part@g" \
-        -e "s@(REP)@$r@g" \
-        -e "s@(P2P)@$inpdir/gpuP2PCheck@g" \
-        -e "s@(WHOAMI)@$(whoami)@g" \
-        -e "s@(RUNTIME)@$runtime@g" \
-        -e "s@(REF)@$reference@g" \
-        -e "s@(FUNFILE)@$inpdir/functions@g" \
-        -e "s@(GPUS)@$ngpus@g" \
+    eval \
+    sed "-e \"s@(EQDIR)@$eqdir@g\" \
+         -e \"s@(INP)@$prodir@g\" \
+         -e \"s@(QOS)@$qos@g\" \
+         -e \"s@(PART)@$part@g\" \
+         -e \"s@(REP)@$r@g\" \
+         -e \"s@(RUNTIME)@$runtime@g\" \
+         $sedargs" \
         < "${inpdir}/production/PROTOCOL_skelly" > "$dir/production/$rev/$r/PROTOCOL.sh"
-
-    # Remove titan x constraint if running on owners
-    if [[ "$part" == "owners" ]]; then
-        sed -i -e "/titanx/d" "$dir/production/$rev/$r/PROTOCOL.sh"
-    fi
 
     chmod +x -f "$dir/production/$rev/$r/PROTOCOL.sh"
 
@@ -449,8 +418,6 @@ if [[ ! -e "$inpdir/minimization/PROTOCOL_skelly" || \
     exit 1
 fi
 
-# Obtain restraint syntax for water, ions, lipids
-resnameargs="$($inpdir/get_residue_names.py "$prmtop")"
 
 # Restraints
 if [[ ! -z "$restrainres" ]]; then
@@ -459,13 +426,33 @@ else
   restraint=""
 fi
 
+# Obtain restraint syntax for water, ions, lipids
+resnameargs="$($inpdir/get_residue_names.py "$prmtop")"
+
+# Accumulate sed arguments common to all files
+# These vary in sed delimiter because @ or / can be in some variables.
+sedargs="-e \"s/(DT)/$dt/g\" \
+         -e \"s/(PRESSURE)/$pressure/g\" \
+         -e \"s@(PRMTOP)@$prmtop@g\" \
+         -e \"s@(REV)@$rev@g\" \
+         -e \"s@(NOW)@$(date)@g\" \
+         -e \"s@(WHOAMI)@$(whoami)@g\" \
+         -e \"s@(DIR)@$dir@g\" \
+         -e \"s@(FUNFILE)@$inpdir/functions@g\" \
+         -e \"s@(GPUS)@$ngpus@g\" \
+         -e \"s@(P2P)@$inpdir/gpuP2PCheck@\" \
+         -e \"s/(RESTRAINT)/$restraint/g\" \
+         -e \"s@(NAM)@$name@g\" \
+         -e \"s@(REF)@$inpcrd@g\" \
+         -e \"s@(INPCRD)@$inpcrd@g\"
+         $resnameargs"
+
 # Create directory structure if nonexistent
 # Keep everything on scratch, and just a symlink to share
 if [[ $msm -eq 0 ]]; then
     echo "Checking directory structure"
 fi
 if [[ ! -d "$dir" ]]; then mkdir -p $dir; fi
-#if [[ ! -d "${dir/scratch/share}" ]]; then ln -s "$dir" "${dir/scratch/share}"; fi
 
 # Make production replicate directories
 if [[ $msm -eq 0 ]]; then
@@ -504,8 +491,6 @@ fi
 if [[ $msm -eq 0 ]]; then
     echo "Ok"
 fi
-# Reference is initial minimized coordinates -R (7Mar16)
-reference="$inpcrd"
 
 # SET UP PRODUCTION RUNS
 prodir="$dir/production/$rev"
@@ -514,12 +499,10 @@ prodir="$dir/production/$rev"
 # Use / as a separator here since there can be a '@' in restraint string
 # Nsteps is for 5 ns of runtime in the production final equilibration
 if [[ ! -f $prodir/Eq_6.mdin ]]; then
-    sed -e "s/(RESTRAINT)/$restraint/g" \
-        -e "s/(NSTEPS)/$(echo "scale=0; 5000/$dt" | bc)/g" \
-        -e "s/(PRESSURE)/$pressure/g" \
-        -e "s/(DT)/$dt/g" \
-        -e "s/(EQWRITE)/$eqwrite/g" \
-        $resnameargs \
+    eval \
+    sed "-e \"s/(NSTEPS)/$(echo "scale=0; 5000/$dt" | bc)/g\" \
+         -e \"s/(EQWRITE)/$eqwrite/g\" \
+        $sedargs" \
         < "$inpdir/production/Eq_6.mdin" > "$prodir/Eq_6.mdin"
 else
     echo "Using existing Eq_6.mdin"
@@ -528,12 +511,10 @@ fi
 # Same thing for the production file, using calculated nsteps
 # for the desired runtime
 if [[ ! -f $prodir/Prod_${runtime}h.mdin ]]; then
-    sed -e "s/(RESTRAINT)/$restraint/g" \
-        -e "s/(NSTEPS)/$nstep/g" \
-        -e "s/(PRESSURE)/$pressure/g" \
-        -e "s/(DT)/$dt/g" \
-        -e "s/(PRODWRITE)/$prodwrite/g" \
-        $resnameargs \
+    eval \
+    sed "-e \"s/(NSTEPS)/$nstep/g\" \
+         -e \"s/(PRODWRITE)/$prodwrite/g\" \
+         $sedargs" \
         < "$inpdir/production/Prod_skelly.mdin" > "$prodir/Prod_${runtime}h.mdin"
 else
     echo "Using existing Prod_${runtime}h.mdin"
