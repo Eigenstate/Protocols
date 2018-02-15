@@ -4,7 +4,7 @@ Lipid 128 heating 100K
   ntx=1,          ! Positions read formatted with no initial velocities
   irest=0,        ! No restart
   ntc=2,          ! SHAKE on for bonds with hydrogen
-  WATNAM='(WATER)',
+  WATNAM='(WATRES)',
   OWTNM='(WATERO)',
   ntf=2,          ! No force evaluation for bonds with hydrogen
   tol=0.0000001,  ! SHAKE tolerance

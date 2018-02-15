@@ -5,7 +5,7 @@ Lipid 128 heating 303K
   irest=1,      ! Restart calculation
   ntc=2,
   ntf=2,
-  WATNAM='(WATER)',
+  WATNAM='(WATRES)',
   OWTNM='(WATERO)',
   tol=0.0000001,
   ntt=3,

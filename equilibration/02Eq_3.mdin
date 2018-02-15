@@ -5,7 +5,7 @@
   irest=1,
   ntc=2,
   ntf=2,
-  WATNAM='(WATER)',
+  WATNAM='(WATRES)',
   OWTNM='(WATERO)',
   tol=0.0000001,
   ntt=3,

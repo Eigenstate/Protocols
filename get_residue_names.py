@@ -29,8 +29,14 @@ if __name__ == "__main__":
     result += ioncommand
 
     # Now the water residue name
+    # Do first with residue prefixes, then without, for more clarity
+    # in skeleton input files
     watids = set(atomsel("water", mid).get("resname"))
-    watcommand = "-e \"s/(WATER)/%s/g\" " % ("|:".join(watids))
+    if len(watids) > 1:
+        raise ValueError("Found more than one water model in use. "
+                         "Resames were: '%s'" % ", ".join(watids))
+    watcommand = "-e \"s/(WATER)/(:%s)/g\" " % ("|:".join(watids))
+    watcommand += "-e \"s/(WATRES)/%s/g\" " % watids.pop()
     result += watcommand
 
     # Finally, the water oxygen atom name, for shake
