@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Sherlock 2, GCC build of Amber17 + patches
-#  Created at Mon Dec 11 17:01:06 PST 2017 via ./configure -mpi -noX11 --skip-python -nofftw3 -mpi -cuda gnu
+#  Created at Mon Dec 11 17:01:06 PST 2017 via ./configure -noX11 --skip-python -nofftw3 -mpi -cuda gnu
 # Serial ambertools configured with /configure -noX11 --skip-python -nofftw3  gnu  
 
 # Built 11 Dec 2017, RMB
