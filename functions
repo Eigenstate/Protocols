@@ -152,6 +152,47 @@ function run_md {
 
 #==============================================================================
 
+# Runs a single step, on cpus only
+# $1 = step name
+# $2 = restart file
+# $3 = input file. If not provided, defaults to $inpdir/$1.mdin
+# $4 = if present, don't chmod output files 
+# Example:
+#   run_md "Heat_2" "Heat_1.rst"
+function run_md_cpu {
+    if [[ -z $3 ]]; then
+        inp="$inpdir/${1}.mdin"
+    else
+        inp=$3
+    fi
+
+    if [[ $SLURM_NTASKS == 1 ]]; then
+        $AMBERHOME/bin/pmemd \
+        -O \
+        -i "$inp" \
+        -o "${1}.mdout" -p "$prmtop" -c "$2" \
+        -r "${1}.rst" -ref "$ref" -x "${1}.nc"
+    else
+        $MPI_HOME/bin/mpirun -np $SLURM_NTASKS \
+                             --bind-to socket \
+                             $AMBERHOME/bin/pmemd.MPI \
+                             -O \
+                             -i "$inp" \
+                             -o "${1}.mdout" -p "$prmtop" -c "$2" \
+                             -r "${1}.rst" -ref "$ref" -x "${1}.nc" \
+                             -amd "${1}.amdlog"
+    fi
+
+    # Remove write permissions but don't fail if you can't
+    if [[ -z "$4" ]]; then
+        set +e
+        chmod a-w -f "$1".{mdout,rst,nc}
+        set -e
+    fi
+}
+
+#==============================================================================
+
 # Runs a single step, with 8 CPUs. Won't save a trajectory (for minimization)
 # $1 = step name
 # $2 = restart file
