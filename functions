@@ -8,6 +8,7 @@
 # $1 = mdout file
 # $2 = skeleton name to delete
 # $3 = whether or not to return an error
+#      if present, also requires mdout file is complete
 # Example:
 #   check_previous "Prod_1.mdout" "Prod_1"
 # Deletes previous ones if error, kills self
@@ -69,18 +70,43 @@ function check_previous {
     # Check for crash caused by previous coordinates
     # TODO
 
-    # Delete previous one
+    # If requested, check mdout represents a complete file
+    if [[ $fail == 1 ]] && ! $(grep -q "Master Total wall time" "$1"); then
+        echo "Incomplete mdout file"
+        error=1
+    fi
+
+    # Delete previous one if input files are broken in some way
     if [[ "$error" -eq 2 ]]; then
         if [[ "$2" == "Prod_0" ]]; then
-            echo "Deleting Eq_6"
-            rm -f "Eq_6".{nc,mdout.rst}
-        elif [[ "$2" == "Eq_6" ]]; then
             echo "Deleting bad Eq_6"
             rm -f "Eq_6".{nc,mdout.rst}
             rm -f "mdinfo"
-        elif [[ "$2" == *"Heat"* ]]; then
+
+        # For final equilibration, delete symlink and its target
+        elif [[ "$2" == "Eq_6" ]]; then
+            echo "Deleting Eq_final"
+            for ext in "mdout" "nc" "rst"; do
+                rm -f "$(readlink -f Eq_final.${ext})"
+                rm -f "Eq_final.${ext}"
+            done
+
+        # For heating or first equilibration, delete all heating
+        elif [[ "$2" == *"Heat"* ]] || [[ $2 == Eq_1 ]]; then
             echo "Deleting heating"
             rm -f "Heat"*.{nc,mdout,rst}
+
+        # For other equilibrations, delete the previous equilibration
+        elif [[ "$2" == *"Eq"* ]]; then
+            # Resolve symlink to figure out what eq_final is
+            if [[ "$2" == "Eq_final" ]]; then
+                prev=$(readlink "${2}.rst")
+                prev=${prev%.rst}
+            fi
+            prev="Eq_$(($(echo "$2" | awk -F '_' '{print $NF}')-1))"
+            echo "Deleting previous: $prev"
+            rm -f "$prev".{nc,mdout.rst}
+
         else
             echo "Deleting previous: $prev"
             prev="Prod_$(($(echo "$2" | awk -F '_' '{print $NF}')-1))"
@@ -90,7 +116,11 @@ function check_previous {
 
     if [[ "$error" -ne 0 ]]; then
         echo "Deleting $2"
-        rm -f "$2".{nc,mdout,rst}
+        # Delete symlink targets as well
+        for ext in "nc" "mdout" "rst"; do
+            rm -f "$(readlink -f ${2}.${ext})"
+            rm -f "$2.${ext}"
+        done
         rm -f "mdinfo"
 
         if [[ -f "failure" ]]; then

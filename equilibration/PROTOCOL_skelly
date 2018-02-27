@@ -15,9 +15,9 @@
 #                            PROTOCOL(REV)
 #=====================================================================
 # GOAL   : Equilibrate the system at 310K after heating
-#        
-# INPUTS :  
-# OUTPUT : Equilibrated system 
+#
+# INPUTS :
+# OUTPUT : Equilibrated system
 # PROJECT: (NAM)
 # PATH   : DIR
 # DATE   : NOW
@@ -100,6 +100,9 @@ done
 
 # Now symlink the final equilibration rst so that the production
 # jobs can find it regardless of the number of equilibration steps
-ln -s "Eq_${eqnum}.rst" "Eq_final.rst"
+for ext in "rst" "nc" "mdout"; do
+    ln -s "Eq_${eqnum}.${ext}" "Eq_final.${ext}"
+done
+
 echo "Done with equilibration of: $SLURM_JOB_NAME"
 date

@@ -61,6 +61,7 @@ fi
 if [[ ! -f "Eq_6.rst" ]]; then
     echo "No restraint equilibration for initial run: $SLURM_JOB_NAME"
     rm -f "Prod_"*
+    check_previous "(EQDIR)/Eq_final.mdout" "Eq_final"
     run_md "Eq_6" "(EQDIR)/Eq_final.rst" "$inpdir/Eq_6.mdin" nochmod
 fi
 
