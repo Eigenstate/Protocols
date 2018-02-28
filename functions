@@ -71,7 +71,7 @@ function check_previous {
     # TODO
 
     # If requested, check mdout represents a complete file
-    if [[ $fail == 1 ]] && ! $(grep -q "Master Total wall time" "$1"); then
+    if [[ $fail == 1 ]] && ! $(grep -qi "Total wall time" "$1"); then
         echo "Incomplete mdout file"
         error=1
     fi
@@ -130,7 +130,7 @@ function check_previous {
         fi
 
         # Resubmit the job
-        sbatch "PROTOCOL.sh"
+        sbatch --dependency=singleton "PROTOCOL.sh"
         return $fail
     fi
 
