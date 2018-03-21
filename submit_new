@@ -166,8 +166,7 @@ function start_production {
          -e \"s@(QOS)@$qos@g\" \
          -e \"s@(PART)@$part@g\" \
          -e \"s@(REP)@$r@g\" \
-         -e \"s@(RUNTIME)@$runtime@g\" \
-         -e \"s/(EXTRAOPTS)/$extraopts/g\"" \
+         -e \"s@(RUNTIME)@$runtime@g\"" \
          $sedargs \
         < "${inpdir}/production/PROTOCOL_skelly" > "$dir/production/$rev/$r/PROTOCOL.sh"
 
@@ -542,7 +541,8 @@ fi
 if [[ ! -f $prodir/Prod_${runtime}h.mdin ]]; then
     eval \
     "sed -e \"s/(NSTEPS)/$nstep/g\" \
-         -e \"s/(PRODWRITE)/$prodwrite/g\"" \
+         -e \"s/(PRODWRITE)/$prodwrite/g\" \
+         -e \"s/(EXTRAOPTS)/$extraopts/g\"" \
          $sedargs \
         < "$inpdir/production/Prod_skelly.mdin" > "$prodir/Prod_${runtime}h.mdin"
 else
