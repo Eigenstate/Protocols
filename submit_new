@@ -33,6 +33,7 @@ function usage {
   echo "  --msm <rep> for MSM mode: no output, specify single replicate number."
   echo "  --gpus <n> for number of GPUs per simulation. Defaults to 1"
   echo "  --gentle-equilibration for 2fs equilibration timestep"
+  echo "  --extra-production-options <string> = Extra options for production input file"
 }
 set -e
 declare -a minjob
@@ -158,13 +159,15 @@ function start_production {
         echo "  Replicate $r..."
     fi
 
+    # Again, a mix of sed delimiters here because may have atomsels with @
     eval \
     sed "-e \"s@(EQDIR)@$eqdir@g\" \
          -e \"s@(INP)@$prodir@g\" \
          -e \"s@(QOS)@$qos@g\" \
          -e \"s@(PART)@$part@g\" \
          -e \"s@(REP)@$r@g\" \
-         -e \"s@(RUNTIME)@$runtime@g\"" \
+         -e \"s@(RUNTIME)@$runtime@g\" \
+         -e \"s/(EXTRAOPTS)/$extraopts/g\"" \
          $sedargs \
         < "${inpdir}/production/PROTOCOL_skelly" > "$dir/production/$rev/$r/PROTOCOL.sh"
 
@@ -290,6 +293,10 @@ while [[ "$#" > 0 ]]; do
     ;;
     "--gentle-equilibration")
     gentleq=1
+    ;;
+    "--extra-production-options")
+    extraopts="$2"
+    shift
     ;;
     *)
     usage
