@@ -35,6 +35,20 @@ function check_previous {
         error=1
     fi
 
+    # Check that next job won't have problems with its output files
+    # This is passed something where the restart exists, so that's good.
+    prefix=${2%_*}
+    next=$(( ${2##*_} + 1))
+    if [[ -f ${prefix}_${next}.mdout ]]; then
+        echo "Removing orphan mdout file: ${prefix}_${next}.mdout"
+        rm -f "${prefix}_${next}.mdout"
+    fi
+    if [[ -f ${prefix}_${next}.nc ]]; then
+        echo "Removing orphan trajectory file: ${prefix}_${next}.nc"
+        rm -f "${prefix}_${next}.nc"
+    fi
+
+
     # Check for errors in previous trajectory
     if $(grep -q "NaN(s) found in input coordinates" "$1"); then
         echo "NaN in input coordinates"
@@ -148,7 +162,7 @@ function check_previous {
 # $1 = step name
 # $2 = restart file
 # $3 = input file. If not provided, defaults to $inpdir/$1.mdin
-# $4 = if present, don't chmod output files 
+# $4 = if present, don't chmod output files
 # Example:
 #   run_md "Heat_2" "Heat_1.rst"
 function run_md {
