@@ -43,6 +43,10 @@ function check_previous {
     elif $(grep -q "NaN" "$1"); then
         echo "NaN in mdout!"
         error=2
+    # Check for input errors in mdout
+    elif $(grep -q "Input errors occurred" "$1"); then
+        echo "Input errors in mdout!"
+        error=2
     fi
 
     # Check for incomplete rst file
