@@ -372,7 +372,11 @@ minpart="$part"
 minqos="$qos"
 if [[ "$part" == "owners" ]]; then
     minpart="rondror"
-    minqos="rondror_high"
+    if [[ $SHERLOCK == 2 ]]; then
+        minqos="rondror"
+    else
+        minqos="rondror_high"
+    fi
 fi
 
 # Set the equilibration time depending on the number of GPUs
