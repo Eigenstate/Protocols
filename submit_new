@@ -373,7 +373,7 @@ minqos="$qos"
 if [[ "$part" == "owners" ]]; then
     minpart="rondror"
     if [[ $SHERLOCK == 2 ]]; then
-        minqos="rondror"
+        minqos="normal"
     else
         minqos="rondror_high"
     fi
