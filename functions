@@ -37,15 +37,19 @@ function check_previous {
 
     # Check that next job won't have problems with its output files
     # This is passed something where the restart exists, so that's good.
+    # Usually these files exist because the job died before it could write
+    # a rst.
     prefix=${2%_*}
     next=$(( ${2##*_} + 1))
     if [[ -f ${prefix}_${next}.mdout ]]; then
         echo "Removing orphan mdout file: ${prefix}_${next}.mdout"
         rm -f "${prefix}_${next}.mdout"
+        error=2
     fi
     if [[ -f ${prefix}_${next}.nc ]]; then
         echo "Removing orphan trajectory file: ${prefix}_${next}.nc"
         rm -f "${prefix}_${next}.nc"
+        error=2
     fi
 
 
