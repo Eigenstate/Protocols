@@ -89,6 +89,15 @@ function check_previous {
         error=2
     fi
 
+    # Check for SIGABRT / posix error
+    # Yeah i suck at bash today
+    if $(tail -n 1 "${rev}slurm.out" | grep  -qi "Aborted"); then
+       if $(grep -qi "posixio.c" "${rev}slurm.out"); then
+         echo "Disk quota error."
+         error=3
+       fi
+    fi
+
     # Check for crash caused by previous coordinates
     # TODO
 
@@ -99,7 +108,7 @@ function check_previous {
     fi
 
     # Delete previous one if input files are broken in some way
-    if [[ "$error" -eq 2 ]]; then
+    if [[ "$error" -gt 1 ]]; then
         if [[ "$2" == "Prod_0" ]]; then
             echo "Deleting bad Eq_6"
             rm -f "Eq_6".{nc,mdout.rst}
@@ -151,8 +160,14 @@ function check_previous {
             echo "1" > "failure"
         fi
 
-        # Resubmit the job
-        sbatch --dependency=singleton "PROTOCOL.sh"
+        # Error code 3 means we've hit the disk quota, hold the job
+        if [[ $error -eq 3 ]]; then
+            echo "Disk quota hit... holding all jobs!"
+            scontrol hold Name="$SLURM_JOB_NAME"
+        else
+            # Resubmit the job
+            sbatch --dependency=singleton "PROTOCOL.sh"
+        fi
         return $fail
     fi
 
@@ -208,7 +223,7 @@ function run_md {
 # $1 = step name
 # $2 = restart file
 # $3 = input file. If not provided, defaults to $inpdir/$1.mdin
-# $4 = if present, don't chmod output files 
+# $4 = if present, don't chmod output files
 # Example:
 #   run_md "Heat_2" "Heat_1.rst"
 function run_md_cpu {
