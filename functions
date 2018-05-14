@@ -140,12 +140,12 @@ function check_previous {
             fi
             prev="Eq_$(($(echo "$2" | awk -F '_' '{print $NF}')-1))"
             echo "Deleting previous: $prev"
-            rm -f "$prev".{nc,mdout.rst}
+            rm -f "$prev".{nc,mdout,rst}
 
         else
-            echo "Deleting previous: $prev"
             prev="Prod_$(($(echo "$2" | awk -F '_' '{print $NF}')-1))"
-            rm -f "$prev".{nc,mdout.rst}
+            echo "Deleting previous: $prev"
+            rm -f "$prev".{nc,mdout,rst}
         fi
     fi
 
