@@ -30,10 +30,6 @@ export PATH="$AMBERHOME/bin:$PATH"
 export LD_LIBRARY_PATH="$AMBERHOME/lib:$LD_LIBRARY_PATH"
 export LD_LIBRARY_PATH="$AMBERHOME/lib64:$LD_LIBRARY_PATH"
 
-# stupid readline stuff
-export CPATH="/usr/include/readline/:$CPATH"
-export LD_LIBRARY_PATH="/usr/lib64:$LD_LIBRARY_PATH"
-
 # Debugging options
 #export FOR_DUMP_CORE_FILE=1
 #export FORT_BUFFERED=0
