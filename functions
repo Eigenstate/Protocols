@@ -44,12 +44,12 @@ function check_previous {
     if [[ -f ${prefix}_${next}.mdout ]]; then
         echo "Removing orphan mdout file: ${prefix}_${next}.mdout"
         rm -f "${prefix}_${next}.mdout"
-        error=2
+        error=1
     fi
     if [[ -f ${prefix}_${next}.nc ]]; then
         echo "Removing orphan trajectory file: ${prefix}_${next}.nc"
         rm -f "${prefix}_${next}.nc"
-        error=2
+        error=1
     fi
 
 
