@@ -3,6 +3,7 @@
 #SBATCH --partition=(PART)
 #SBATCH --qos=(QOS)
 #SBATCH --ntasks-per-socket=(GPUS) --gres=gpu:(GPUS) --tasks=(GPUS)
+#SBATCH --constraint="GPU_SKU:TITAN_Xp|GPU_SKU:TITAN_X"
 #SBATCH --mem=1GB
 #SBATCH --output=(REV)slurm.out --open-mode=append
 ##SBATCH --mail-user=(WHOAMI)@stanford.edu --mail-type=FAIL
