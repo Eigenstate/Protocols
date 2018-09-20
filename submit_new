@@ -107,12 +107,13 @@ function start_equilibration {
     # Weights go from 5,4,3,2,1 as equilibration number increases
     cd "$inpdir/equilibration/"
     for ((i=0; i<${#eqrsts[@]}; i++)); do
+        eqnam="$(printf $eqdir/Eq_%02d.mdin $((i+1)))"
         eval \
         sed "-e \"s/(EQWRITE)/$eqwrite/g\" \
              -e \"s/(NSTEPS)/$(echo "scale=0; 2000/$eqdt" | bc)/g\" \
              -e \"s/(WEIGHT)/${eqrsts[i]}/g\"" \
             $sedargs \
-            < "$inpdir/equilibration/Eq_skelly.mdin" > "$eqdir/Eq_$((i+1)).mdin"
+            < "$inpdir/equilibration/Eq_skelly.mdin" > "$eqnam"
     done
     cd - > /dev/null
 
