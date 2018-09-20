@@ -106,13 +106,13 @@ function start_equilibration {
     # Now do the equilibration mdin files, each is 2 ns
     # Weights go from 5,4,3,2,1 as equilibration number increases
     cd "$inpdir/equilibration/"
-    for ((i=1; i<=$maxeqs; i++)); do
+    for ((i=0; i<${#eqrsts}; i++)); do
         eval \
         sed "-e \"s/(EQWRITE)/$eqwrite/g\" \
              -e \"s/(NSTEPS)/$(echo "scale=0; 2000/$eqdt" | bc)/g\" \
-             -e \"s/(WEIGHT)/$((maxeqs-i+1)).0/g\"" \
+             -e \"s/(WEIGHT)/${eqrsts[i]}/g\"" \
             $sedargs \
-            < "$inpdir/equilibration/Eq_skelly.mdin" > "$eqdir/Eq_$i.mdin"
+            < "$inpdir/equilibration/Eq_skelly.mdin" > "$eqdir/Eq_$((i+1)).mdin"
     done
     cd - > /dev/null
 
@@ -417,9 +417,9 @@ if [[ $gentleq == 1 ]]; then
     eqdt=0.002
     heatwrite="ntpr=100, ntwr=10000, ntwx=1000,"
     eqwrite="ntpr=6250, ntwr=62500, ntwx=12500,"
-    maxeqs=5
+    eqrsts=(5.0 4.0 3.0 2.0 1.0 0.9 0.8 0.7 0.6 0.5 0.4 0.3 0.2 0.1)
 else
-    maxeqs=5
+    eqrsts=(5.0 4.0 3.0 2.0 1.0)
 fi
 
 nstep=$(echo "scale=0; $runtime * $speed * 1000 / $dt / 24" | bc) # number of steps
