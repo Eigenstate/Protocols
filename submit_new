@@ -106,7 +106,7 @@ function start_equilibration {
     # Now do the equilibration mdin files, each is 2 ns
     # Weights go from 5,4,3,2,1 as equilibration number increases
     cd "$inpdir/equilibration/"
-    for ((i=0; i<${#eqrsts}; i++)); do
+    for ((i=0; i<${#eqrsts[@]}; i++)); do
         eval \
         sed "-e \"s/(EQWRITE)/$eqwrite/g\" \
              -e \"s/(NSTEPS)/$(echo "scale=0; 2000/$eqdt" | bc)/g\" \
