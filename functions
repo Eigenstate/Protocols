@@ -114,12 +114,12 @@ function check_previous {
     # Delete previous one if input files are broken in some way
     if [[ "$error" -gt 1 ]]; then
         if [[ "$2" == "Prod_0" ]]; then
-            echo "Deleting bad Eq_6"
-            rm -f "Eq_6".{nc,mdout.rst}
+            echo "Deleting bad Eq_unrestrained"
+            rm -f "Eq_unrestrained".{nc,mdout.rst}
             rm -f "mdinfo"
 
         # For final equilibration, delete symlink and its target
-        elif [[ "$2" == "Eq_6" ]]; then
+        elif [[ "$2" == "Eq_unrestrained" ]]; then
             echo "Deleting Eq_final"
             for ext in "mdout" "nc" "rst"; do
                 rm -f "$(readlink -f Eq_final.${ext})"

@@ -3,7 +3,7 @@
 function usage {
   echo "Usage: $0 -r <revision> -d <directory> -p <prmtop>"
   echo "       -j <job name> -q <queue> -s <speed> -t <time>"
-  echo "       -n <# replicates> [-c <inpcrd>]"
+  echo "       -n <# replicates> [-c <inpcrd|rst>]"
   echo "       [--restraints <restraints>] [--production]"
   echo "       [--hmr|--slow] [--isotropic] [--msm <repnum>]"
   echo "       [--gpus <n>]"
@@ -346,6 +346,10 @@ if [[ $prodonly -eq 0 && ! -e "$inpcrd" ]]; then
     exit 1
 fi
 
+if [[ $prodonly -eq 1 && $inpcrd == *".rst" ]]; then
+    echo "Starting new production runs with velocites from '$inpcrd'"
+fi
+
 # Set runtime and QOS according to allowed runtime
 if [[ "$qos" == "rondror" || "$qos" == "rondror_high" ]]; then
     if [[ $SHERLOCK == 2 ]]; then
@@ -507,20 +511,33 @@ fi
 if [[ $prodonly == "0" ]]; then
     if [[ $msm -eq 0 ]]; then
         if [[ -e "$dir/minimization/$rev/1/min1.mdout" || \
-              -e "$dir/equilibration/$rev/1/Eq_1.mdout" || \
               -e "$dir/equilibration/$rev/1/Eq_1.mdout" ]]; then
             echo "ERROR: Output files found from revision $rev. Won't overwrite."
             exit 1
         fi
     else
         if [[ -e "$dir/minimization/$rev/$msm/min1.mdout" || \
-              -e "$dir/equilibration/$rev/msm/Eq_1.mdout" || \
               -e "$dir/equilibration/$rev/$msm/Eq_1.mdout" ]]; then
             echo "ERROR: Output files from revision $rev, rep $msm. Won't overwrite."
             exit 1
         fi
     fi
+# If starting new replicates with velocites, symlink restart and associated
+# output files so that production run starts from there.
+elif [[ $inpcrd == *".rst" ]]; then
+    rstpath=$(readlink -f "$inprcd")
+    if [[ ! -e ${rstpath%.rst}.nc || ! -e ${rstpath%.rst}.mdout ]]; then
+        echo "ERROR: Specifying a restart and --production, but restart"
+        echo "       does not have a matching mdout and nc"
+        exit 1
+    fi
+    for ((r=1; r<=$rep; r++)); do
+        ln -s "$rstpath" "$dir/production/$rev/$r/Eq_unrestrained.rst"
+        ln -s "${rstpath%.rst}.nc" "$dir/production/$rev/$r/Eq_unrestrained.nc"
+        ln -s "${rstpath%.rst}.mdout" "$dir/productin/$rev/$r/Eq_unrestrained.mdout"
+    done
 fi
+
 if [[ $msm -eq 0 ]]; then
     echo "Ok"
 fi
@@ -531,14 +548,14 @@ prodir="$dir/production/$rev"
 # Write settable variables in local copy of input files
 # Use / as a separator here since there can be a '@' in restraint string
 # Nsteps is for 5 ns of runtime in the production final equilibration
-if [[ ! -f $prodir/Eq_6.mdin ]]; then
+if [[ ! -f $prodir/Eq_unrestrained.mdin ]]; then
     eval \
     sed "-e \"s/(NSTEPS)/$(echo "scale=0; 5000/$eqdt" | bc)/g\" \
          -e \"s/(EQWRITE)/$eqwrite/g\"" \
         $sedargs \
-        < "$inpdir/production/Eq_6.mdin" > "$prodir/Eq_6.mdin"
+        < "$inpdir/production/Eq_unrestrained.mdin" > "$prodir/Eq_unrestrained.mdin"
 else
-    echo "Using existing Eq_6.mdin"
+    echo "Using existing Eq_unrestrained.mdin"
 fi
 
 # Same thing for the production file, using calculated nsteps

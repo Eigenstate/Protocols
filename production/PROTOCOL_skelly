@@ -59,19 +59,19 @@ fi
 # Do last equilibration step in each replicate
 # Remove restraints entirely, equilibrate for 5ns
 # in the NPT ensemble, 2.5fs timestep
-if [[ ! -f "Eq_6.rst" ]]; then
+if [[ ! -f "Eq_unrestrained.rst" ]]; then
     echo "No restraint equilibration for initial run: $SLURM_JOB_NAME"
     rm -f "Prod_"*
     check_previous "(EQDIR)/Eq_final.mdout" "Eq_final"
-    run_md "Eq_6" "(EQDIR)/Eq_final.rst" "$inpdir/Eq_6.mdin" nochmod
+    run_md "Eq_unrestrained" "(EQDIR)/Eq_final.rst" "$inpdir/Eq_unrestrained.mdin" nochmod
 fi
 
 # Simulate at 310K in the NPT ensemble with 2.0fs timestep
 # This run will probably run out of walltime.
 if [[ ! -f "Prod_0.rst" ]]; then
     echo "Beginning first unrestrained production run: $SLURM_JOB_NAME"
-    check_previous "Eq_6.mdout" "Eq_6" # Check equilibration completed successfully
-    run_md "Prod_0" "Eq_6.rst" "$inpdir/Prod_(RUNTIME)h.mdin"
+    check_previous "Eq_unrestrained.mdout" "Eq_unrestrained" # Check equilibration completed successfully
+    run_md "Prod_0" "Eq_unrestrained.rst" "$inpdir/Prod_(RUNTIME)h.mdin"
 fi
 
 # Given final equilibration and initial production run, continue from here
@@ -87,7 +87,7 @@ rst="$inpdir/$rep/Prod_${last}.rst"
 # Check that last actually exists. If Prod_0 was wrong and deleted, it could be empty
 if [[ -z $last ]] || [[ ! -f $rst ]]; then
     echo "No such production restart: $rst. Aborting to re-equilibrate."
-    rm -f "Eq_6"*
+    rm -f "Eq_unrestrained"*
     exit 1
 fi
 
