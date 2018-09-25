@@ -77,9 +77,10 @@ fi
 # This allows flexibility for many equilibration scenarios
 # Since I have set -e, any errors will kill this run and abort the loop
 for inpfile in $(ls Eq_*.mdin | sort); do
-    # Get run number inpfile  Eq_02.mdin
-    eqnum=${inpfile%.mdin}; # Eq_02
-    eqnum=${eqnum#Eq_}      # 02
+    # Get run number inpfile      Eq_02.mdin
+    eqnum=${inpfile%.mdin};     # Eq_02
+    eqnum=${eqnum#Eq_}          # 02
+    eqint=$(printf "%d" $eqnum) # 2 (for arithmetic comparisons)
 
     # If run already done, go to next input file
     if [[ -f "Eq_${eqnum}.rst" ]]; then
@@ -87,10 +88,10 @@ for inpfile in $(ls Eq_*.mdin | sort); do
     fi
 
     # Determine previous run name
-    if [[ $eqnum -eq 1 ]]; then
+    if [[ $eqint -eq 1 ]]; then
         prevrun="Heat_2"
     else
-        prevrun="$(printf Eq_%02d $((eqnum-1)))"
+        prevrun="$(printf Eq_%02d $((eqint-1)))"
     fi
 
     # Check input data are valid and run the simulation
