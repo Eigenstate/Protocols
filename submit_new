@@ -533,7 +533,8 @@ if [[ $prodonly == "0" ]]; then
 # If starting new replicates with velocites, symlink restart and associated
 # output files so that production run starts from there.
 elif [[ $inpcrd == *".rst" ]]; then
-    rstpath=$(readlink -f "$inprcd")
+    rstpath=$(readlink -f "$inpcrd")
+    echo "Making symlinks to previous run at $rstpath"
     if [[ ! -e ${rstpath%.rst}.nc || ! -e ${rstpath%.rst}.mdout ]]; then
         echo "ERROR: Specifying a restart and --production, but restart"
         echo "       does not have a matching mdout and nc"
@@ -542,7 +543,7 @@ elif [[ $inpcrd == *".rst" ]]; then
     for ((r=1; r<=$rep; r++)); do
         ln -s "$rstpath" "$dir/production/$rev/$r/Eq_unrestrained.rst"
         ln -s "${rstpath%.rst}.nc" "$dir/production/$rev/$r/Eq_unrestrained.nc"
-        ln -s "${rstpath%.rst}.mdout" "$dir/productin/$rev/$r/Eq_unrestrained.mdout"
+        ln -s "${rstpath%.rst}.mdout" "$dir/production/$rev/$r/Eq_unrestrained.mdout"
     done
 fi
 
