@@ -153,10 +153,11 @@ function start_production {
   eqdir="${prodir/production/equilibration}/$r"
 
   # If starting production jobs only, verify equilibration completed
-  if [[ $prodonly -eq 1 && ! -f $eqdir/$r/Eq_final.rst ]]; then
-      echo "Restarting equilibration for replicate $r"
-      start_equilibration $r 0 # Dependency = job ID 0, should be ok
-      depjob=${eqjob[${#eqjob[@]}-1]}
+  if [[ $prodonly -eq 1 && ! -f $eqdir/Eq_final.rst ]]; then
+      echo "Resubmitting equilibration for replicate $r"
+      cd $eqdir
+      depjob=$(sbatch "PROTOCOL.sh" | awk '{print $4}')
+      cd - > /dev/null
   fi
 
   if [[ -z $depjob ]]; then
