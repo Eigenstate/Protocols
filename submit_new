@@ -148,13 +148,21 @@ function start_production {
       echo "Replicate: $1"
   fi
   r="$1"
+  depjob="$2"
 
   eqdir="${prodir/production/equilibration}/$r"
 
-  if [[ -z $2 ]]; then
+  # If starting production jobs only, verify equilibration completed
+  if [[ $prodonly -eq 1 && ! -f $eqdir/$r/Eq_final.rst ]]; then
+      echo "Restarting equilibration for replicate $r"
+      start_equilibration $r 0 # Dependency = job ID 0, should be ok
+      depjob=${eqjob[${#eqjob[@]}-1]}
+  fi
+
+  if [[ -z $depjob ]]; then
     depline="singleton"
   else
-    depline="singleton,afterok:$2"
+    depline="singleton,afterok:$depjob"
   fi
     if [[ $msm -eq 0 ]]; then
         echo "  Replicate $r..."
@@ -582,7 +590,7 @@ fi
 # SUBMIT ALL RUNS
 if [[ $msm -eq 0 ]]; then
     echo "Not msming.. submitting $rep replicates"
-    for ((x=1;x<=$rep;x++)); do
+    for ((x=1; x<=$rep; x++)); do
         echo " On $x"
         if [[ $prodonly -eq 0 ]]; then
             start_minimization $x
