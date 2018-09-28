@@ -80,7 +80,7 @@ for inpfile in $(ls Eq_*.mdin | sort); do
     # Get run number inpfile      Eq_02.mdin
     eqnum=${inpfile%.mdin};     # Eq_02
     eqnum=${eqnum#Eq_}          # 02
-    eqint=$(printf "%d" $eqnum) # 2 (for arithmetic comparisons)
+    eqint=$((10#$eqnum))        # 2 (for arithmetic comparisons)
 
     # If run already done, go to next input file
     if [[ -f "Eq_${eqnum}.rst" ]]; then
