@@ -39,8 +39,9 @@ function check_previous {
     # This is passed something where the restart exists, so that's good.
     # Usually these files exist because the job died before it could write
     # a rst.
-    prefix=${2%_*}
-    next=$(( ${2##*_} + 1))
+    prefix=${2%_*}  # Eq_ or Prod_
+    jobnum=${2##*_} # 02 or 14, etc
+    next=$(( $((10#$jobnum)) + 1)) # Put it in base 10 and then add 1
     if [[ -f ${prefix}_${next}.mdout ]]; then
         echo "Removing orphan mdout file: ${prefix}_${next}.mdout"
         rm -f "${prefix}_${next}.mdout"
