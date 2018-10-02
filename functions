@@ -41,7 +41,15 @@ function check_previous {
     # a rst.
     prefix=${2%_*}  # Eq_ or Prod_
     jobnum=${2##*_} # 02 or 14, etc
-    next=$(( $((10#$jobnum)) + 1)) # Put it in base 10 and then add 1
+
+    # Handle special case with Eq_final
+    # Eq_unrestrained is after Eq_final
+    if [[ $jobnum == "final" ]]; then
+        next="unrestrained"
+    else
+        next=$(( $((10#$jobnum)) + 1)) # Put it in base 10 and then add 1
+    fi
+
     if [[ -f ${prefix}_${next}.mdout ]]; then
         echo "Removing orphan mdout file: ${prefix}_${next}.mdout"
         rm -f "${prefix}_${next}.mdout"
