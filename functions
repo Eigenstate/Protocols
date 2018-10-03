@@ -42,10 +42,13 @@ function check_previous {
     prefix=${2%_*}  # Eq_ or Prod_
     jobnum=${2##*_} # 02 or 14, etc
 
-    # Handle special case with Eq_final
+    # Handle special case with Eq_final or Eq_unrestrained
     # Eq_unrestrained is after Eq_final
     if [[ $jobnum == "final" ]]; then
         next="unrestrained"
+    elif [[ $jobnum == "unrestrained" ]]; then
+        next="0"
+        prefix="Prod"
     else
         next=$(( $((10#$jobnum)) + 1)) # Put it in base 10 and then add 1
     fi
