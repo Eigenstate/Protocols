@@ -62,7 +62,7 @@ fi
 if [[ ! -f "Eq_unrestrained.rst" ]]; then
     echo "No restraint equilibration for initial run: $SLURM_JOB_NAME"
     rm -f "Prod_"*
-    check_previous "(EQDIR)/Eq_final.mdout" "Eq_final"
+    check_output "(EQDIR)" "Eq_final"
     run_md "Eq_unrestrained" "(EQDIR)/Eq_final.rst" "$inpdir/Eq_unrestrained.mdin" nochmod
 fi
 
@@ -70,7 +70,7 @@ fi
 # This run will probably run out of walltime.
 if [[ ! -f "Prod_0.rst" ]]; then
     echo "Beginning first unrestrained production run: $SLURM_JOB_NAME"
-    check_previous "Eq_unrestrained.mdout" "Eq_unrestrained" # Check equilibration completed successfully
+    check_output "$PWD" "Eq_unrestrained"
     run_md "Prod_0" "Eq_unrestrained.rst" "$inpdir/Prod_(RUNTIME)h.mdin"
 fi
 
@@ -78,7 +78,7 @@ fi
 last=$(ls -1 $inpdir/$rep/Prod*rst | sed -E -e "s@Prod_?@@" -e "s@.rst@@" -e "s@$inpdir/$rep/@@g" | sort -n | tail -n 1)
 
 # Check for successful completion
-check_previous "Prod_${last}.mdout" "Prod_${last}" nofail
+check_output "$PWD" "Prod_${last}" nofail
 
 # Recalculate last in case it changed
 last=$(ls -1 $inpdir/$rep/Prod*rst | sed -E -e "s@Prod_?@@" -e "s@.rst@@" -e "s@$inpdir/$rep/@@g" | sort -n | tail -n 1)

@@ -5,6 +5,355 @@
 #==============================================================================
 
 # Check for last run successful completion
+# $1 = directory containing files to check
+# $2 = skeleton name to check or delete
+# $3 = whether or not to return an error
+#      if present, also requires mdout file is complete
+# Example:
+#   check_output "$PI_HOME/workdir" "Prod_1"
+# Deletes previous ones if error, kills self
+# Creates a file called "failure" if a failure occured
+function check_output {
+
+    # Set variables
+    directory=$1
+    name=$2
+    mdout="$1/$2.mdout"
+
+    if [[ -z $3 ]]; then
+        fail=1
+    else
+        fail=0
+    fi
+
+    # Check for NaNs in mdinfo
+    if [[ -f mdinfo ]]; then
+        if $(grep -q "NaN" "mdinfo"); then
+            echo "NaN in mdinfo!"
+            error_badrun
+        fi
+    fi
+
+    # Check for existence of mdout
+    if [[ ! -f $mdout ]]; then
+        echo "Mdout not found"
+        error_badrun
+    fi
+
+    # Check that next job won't have problems with its output files
+    # This is passed something where the restart exists, so that's good.
+    # Usually these files exist because the job died before it could write
+    # a rst.
+    prefix=${name%_*}  # Eq_ or Prod_
+    jobnum=${name##*_} # 02 or 14 or final, etc
+
+    # Handle special case with Eq_final
+    # Eq_unrestrained is after Eq_final
+    if [[ $jobnum == final ]]; then
+        next="unrestrained"
+    else
+        next=$(( $((10#$jobnum)) + 1)) # Put it in base 10 and then add 1
+    fi
+
+    if [[ -f ${prefix}_${next}.mdout ]]; then
+        echo "Removing orphan mdout file: ${prefix}_${next}.mdout"
+        rm -f "${prefix}_${next}.mdout"
+        error_orphan
+    fi
+
+    if [[ -f ${prefix}_${next}.nc ]]; then
+        echo "Removing orphan trajectory file: ${prefix}_${next}.nc"
+        rm -f "${prefix}_${next}.nc"
+        error_orphan
+    fi
+
+    # Check for errors in previous trajectory
+    if $(grep -q "NaN(s) found in input coordinates" "$1"); then
+        echo "NaN in input coordinates"
+        error_bad_inputs
+    fi
+
+    # Check for Nans in mdout
+    if $(grep -q "NaN" "$1"); then
+        echo "NaN in mdout!"
+        error_bad_inputs
+    fi
+
+    # Check for input errors in mdout
+    if $(grep -q "Input errors occurred" "$1"); then
+        echo "Input errors in mdout!"
+        error_bad_inputs
+    fi
+
+    # Check if node failed to find any CUDA-devices (not a real error)
+    if $(tail -n 1 "${rev}slurm.out" | grep -qi "cudaGetDeviceCount failed"); then
+        echo "Node failure"
+        error_orphan
+    fi
+
+    # Check for incomplete rst file
+    # Replace error lines in slurm file so this doesn't repeatedly trigger
+    badrst=$(grep "end-of-file during read" "${rev}slurm.out" | \
+             tail -n 1 | awk '{print $NF}')
+    if [[ ! -z $badrst ]]; then
+        echo "Incomplete rst file!"
+        sed -e "s/end-of-file during read/EOFERROR/g" -i "${rev}slurm.out"
+        error_bad_inputs
+    fi
+
+    # Check for cuda error as last line
+    if $(tail -n 1 "${rev}slurm.out" | grep -qi "cuda.*gpubuffer"); then
+        echo "Cuda crash!"
+        error_bad_inputs
+    fi
+
+    # Check for MPI error as last line
+    if $(tail -n 1 "${rev}slurm.out" | grep -qi "mpi_abort"); then
+        echo "MPI crash"
+        error_bad_inputs
+    fi
+
+    # Check for SIGABRT / posix error indicating disk quota reached
+    if $(tail -n 1 "${rev}slurm.out" | grep  -qi "Aborted") \
+    && $(grep -qi "posixio.c" "${rev}slurm.out"); then
+         error_hit_quota
+    fi
+
+    # Check for disk quota error explicitly
+    if $(tail -n 1 "${rev}slurm.out" | grep -qi "Disk quota exceeded"); then
+        error_hit_quota
+    fi
+
+    # If requested, check mdout represents a complete file
+    if [[ $fail == 1 ]] && ! $(grep -qi "Total wall time" "$1"); then
+        echo "Incomplete mdout file"
+        error_badrun
+    fi
+
+    rm -f "failure"
+    return 0
+}
+
+# Delete the checked output files
+function delete_these {
+
+    echo "Deleting $name in $directory"
+    # Delete symlink targets as well
+    for ext in "nc" "mdout" "rst"; do
+        rm -f "$(readlink -f $directory/${name}.${ext})"
+        rm -f "$directory/$name.${ext}"
+    done
+    rm -f "$directory/mdinfo"
+
+    # Update failure count
+    if [[ -f failure ]]; then
+        echo "$(($(cat "failure")+1))" > "failure"
+    else
+        echo "1" > "failure"
+    fi
+
+    return $fail
+}
+
+# Deletes the output files before the checked output files, in the
+# case that our checked files are bad due to bad inputs
+function delete_previous {
+
+    if [[ $name == Prod_0 ]]; then
+        echo "Deleting bad Eq_unrestrained in $directory"
+        rm -f "$directory/Eq_unrestrained".{nc,mdout.rst}
+        rm -f "$directory/mdinfo"
+
+    # For heating or first equilibration, delete all heating
+    elif [[ $name == *Heat* ]] || [[ $name == Eq_1 ]]; then
+        echo "Deleting heating in $directory"
+        rm -f "$directory/Heat"*.{nc,mdout,rst}
+
+
+    # For final equilibration, delete symlink and its target
+    # Use given directory path here which is equilibration directory
+    elif [[ $name == Eq_unrestrained ]]; then
+        echo "Deleting Eq_final in $directory"
+        for ext in "mdout" "nc" "rst"; do
+            rm -f "$(readlink -f $directory/Eq_final.${ext})"
+            rm -f "$directory/Eq_final.${ext}"
+            rm -f "$directory/mdinfo"
+        done
+
+    # For other equilibrations, delete the previous equilibration
+    elif [[ $name == *Eq* ]]; then
+        # Resolve symlink to figure out what eq_final is
+        if [[ $name == Eq_final ]]; then
+            prev=$(readlink -f "$directory/${name}.rst")
+            prev=${prev%.rst}
+        fi
+        prev="Eq_$(($(echo "$name" | awk -F '_' '{print $NF}')-1))"
+        echo "Deleting previous: $prev"
+        rm -f "$directory/$prev".{nc,mdout,rst}
+
+    else
+        prev="Prod_$(($(echo "$2" | awk -F '_' '{print $NF}')-1))"
+        echo "Deleting previous: $prev"
+        rm -f "$directory/$prev".{nc,mdout,rst}
+    fi
+}
+
+# We hit the disk quota. hold this job
+function error_hit_quota {
+    echo "Disk quota hit... holding all jobs with this name"
+    delete_these
+    scontrol hold Name="$SLURM_JOB_NAME"
+    exit $fail
+}
+
+# Orphan files existed from next trajectory and have been deleted
+function error_orphan {
+    sbatch --dependency=singleton "PROTOCOL.sh"
+    exit $fail
+}
+
+# Output files that were checked are incomplete
+function error_badrun {
+    delete_these
+    sbatch --dependency=singleton "PROTOCOL.sh"
+    exit $fail
+}
+
+# Output files are bad because previous run had bad inputs
+# We want to delete both.
+function error_bad_inputs {
+    delete_previous
+    delete_these
+    sbatch --dependency=singleton "PROTOCOL.sh"
+    exit $fail
+}
+
+#==============================================================================
+
+# Runs a single step
+# $1 = step name
+# $2 = restart file
+# $3 = input file. If not provided, defaults to $inpdir/$1.mdin
+# $4 = if present, don't chmod output files
+# Example:
+#   run_md "Heat_2" "Heat_1.rst"
+function run_md {
+    if [[ -z $3 ]]; then
+        inp="$inpdir/${1}.mdin"
+    else
+        inp=$3
+    fi
+
+    if [[ $SLURM_NTASKS_PER_SOCKET == 1 ]]; then
+        unset CUDA_VISIBLE_DEVICES # HACK HACK HACK
+        $AMBERHOME/bin/pmemd.cuda \
+        -O \
+        -i "$inp" \
+        -o "${1}.mdout" -p "$prmtop" -c "$2" \
+        -r "${1}.rst" -ref "$ref" -x "${1}.nc"
+    else
+        $MPI_HOME/bin/mpirun -np $SLURM_NTASKS_PER_SOCKET \
+                             --bind-to socket \
+                             $AMBERHOME/bin/pmemd.cuda.MPI \
+                             -O \
+                             -i "$inp" \
+                             -o "${1}.mdout" -p "$prmtop" -c "$2" \
+                             -r "${1}.rst" -ref "$ref" -x "${1}.nc" \
+                             -amd "${1}.amdlog"
+    fi
+
+    # Remove write permissions but don't fail if you can't
+    if [[ -z "$4" ]]; then
+        set +e
+        chmod a-w -f "$1".{mdout,rst,nc}
+        set -e
+    fi
+}
+
+#==============================================================================
+
+# Runs a single step, on cpus only
+# $1 = step name
+# $2 = restart file
+# $3 = input file. If not provided, defaults to $inpdir/$1.mdin
+# $4 = if present, don't chmod output files
+# Example:
+#   run_md "Heat_2" "Heat_1.rst"
+function run_md_cpu {
+    if [[ -z $3 ]]; then
+        inp="$inpdir/${1}.mdin"
+    else
+        inp=$3
+    fi
+
+    if [[ $SLURM_NTASKS == 1 ]]; then
+        $AMBERHOME/bin/pmemd \
+        -O \
+        -i "$inp" \
+        -o "${1}.mdout" -p "$prmtop" -c "$2" \
+        -r "${1}.rst" -ref "$ref" -x "${1}.nc"
+    else
+        $MPI_HOME/bin/mpirun -np $SLURM_NTASKS \
+                             --bind-to socket \
+                             $AMBERHOME/bin/pmemd.MPI \
+                             -O \
+                             -i "$inp" \
+                             -o "${1}.mdout" -p "$prmtop" -c "$2" \
+                             -r "${1}.rst" -ref "$ref" -x "${1}.nc" \
+                             -amd "${1}.amdlog"
+    fi
+
+    # Remove write permissions but don't fail if you can't
+    if [[ -z "$4" ]]; then
+        set +e
+        chmod a-w -f "$1".{mdout,rst,nc}
+        set -e
+    fi
+}
+
+#==============================================================================
+
+# Runs a single step, with 8 CPUs. Won't save a trajectory (for minimization)
+# $1 = step name
+# $2 = restart file
+# $3 = input file. If not provided, defaults to $inpdir/$1.mdin
+# Example:
+#   run_md "min1" "init.rst" "$inpdir/01_min.mdin"
+function run_md_min {
+    if [[ -z $3 ]]; then
+        inp="$inpdir/${1}.mdin"
+    else
+        inp=$3
+    fi
+
+    $MPI_HOME/bin/mpirun -np $SLURM_NTASKS \
+                         --bind-to socket \
+                         $AMBERHOME/bin/pmemd.MPI \
+                         -O \
+                         -i "$inp" \
+                         -o "${1}.mdout" -p "$prmtop" -c "$2" \
+                         -r "${1}.rst" -ref "$ref"
+    # Remove write permissions but don't fail if you can't
+    set +e
+    chmod a-w -f "$1".{mdout,rst}
+    set -e
+}
+
+#==============================================================================
+
+# Prints out a summary of other things running on this node
+# Hopefully this will help me debug why things are crashing all the time
+function print_node_jobs {
+    echo "-------------------------------"
+    hn=${HOSTNAME%.local}
+    echo "$hn   $(date)"
+    squeue -w "$hn" -O "gres,numcpus,partition,username"
+}
+
+#==============================================================================
+
+# INCLUDED FOR BACKWARDS COMPATIBILITY ONLY
+# Check for last run successful completion
 # $1 = mdout file
 # $2 = skeleton name to delete
 # $3 = whether or not to return an error
@@ -188,126 +537,3 @@ function check_previous {
     return 0
 }
 
-#==============================================================================
-
-# Runs a single step
-# $1 = step name
-# $2 = restart file
-# $3 = input file. If not provided, defaults to $inpdir/$1.mdin
-# $4 = if present, don't chmod output files
-# Example:
-#   run_md "Heat_2" "Heat_1.rst"
-function run_md {
-    if [[ -z $3 ]]; then
-        inp="$inpdir/${1}.mdin"
-    else
-        inp=$3
-    fi
-
-    if [[ $SLURM_NTASKS_PER_SOCKET == 1 ]]; then
-        unset CUDA_VISIBLE_DEVICES # HACK HACK HACK
-        $AMBERHOME/bin/pmemd.cuda \
-        -O \
-        -i "$inp" \
-        -o "${1}.mdout" -p "$prmtop" -c "$2" \
-        -r "${1}.rst" -ref "$ref" -x "${1}.nc"
-    else
-        $MPI_HOME/bin/mpirun -np $SLURM_NTASKS_PER_SOCKET \
-                             --bind-to socket \
-                             $AMBERHOME/bin/pmemd.cuda.MPI \
-                             -O \
-                             -i "$inp" \
-                             -o "${1}.mdout" -p "$prmtop" -c "$2" \
-                             -r "${1}.rst" -ref "$ref" -x "${1}.nc" \
-                             -amd "${1}.amdlog"
-    fi
-
-    # Remove write permissions but don't fail if you can't
-    if [[ -z "$4" ]]; then
-        set +e
-        chmod a-w -f "$1".{mdout,rst,nc}
-        set -e
-    fi
-}
-
-#==============================================================================
-
-# Runs a single step, on cpus only
-# $1 = step name
-# $2 = restart file
-# $3 = input file. If not provided, defaults to $inpdir/$1.mdin
-# $4 = if present, don't chmod output files
-# Example:
-#   run_md "Heat_2" "Heat_1.rst"
-function run_md_cpu {
-    if [[ -z $3 ]]; then
-        inp="$inpdir/${1}.mdin"
-    else
-        inp=$3
-    fi
-
-    if [[ $SLURM_NTASKS == 1 ]]; then
-        $AMBERHOME/bin/pmemd \
-        -O \
-        -i "$inp" \
-        -o "${1}.mdout" -p "$prmtop" -c "$2" \
-        -r "${1}.rst" -ref "$ref" -x "${1}.nc"
-    else
-        $MPI_HOME/bin/mpirun -np $SLURM_NTASKS \
-                             --bind-to socket \
-                             $AMBERHOME/bin/pmemd.MPI \
-                             -O \
-                             -i "$inp" \
-                             -o "${1}.mdout" -p "$prmtop" -c "$2" \
-                             -r "${1}.rst" -ref "$ref" -x "${1}.nc" \
-                             -amd "${1}.amdlog"
-    fi
-
-    # Remove write permissions but don't fail if you can't
-    if [[ -z "$4" ]]; then
-        set +e
-        chmod a-w -f "$1".{mdout,rst,nc}
-        set -e
-    fi
-}
-
-#==============================================================================
-
-# Runs a single step, with 8 CPUs. Won't save a trajectory (for minimization)
-# $1 = step name
-# $2 = restart file
-# $3 = input file. If not provided, defaults to $inpdir/$1.mdin
-# Example:
-#   run_md "min1" "init.rst" "$inpdir/01_min.mdin"
-function run_md_min {
-    if [[ -z $3 ]]; then
-        inp="$inpdir/${1}.mdin"
-    else
-        inp=$3
-    fi
-
-    $MPI_HOME/bin/mpirun -np $SLURM_NTASKS \
-                         --bind-to socket \
-                         $AMBERHOME/bin/pmemd.MPI \
-                         -O \
-                         -i "$inp" \
-                         -o "${1}.mdout" -p "$prmtop" -c "$2" \
-                         -r "${1}.rst" -ref "$ref"
-    # Remove write permissions but don't fail if you can't
-    set +e
-    chmod a-w -f "$1".{mdout,rst}
-    set -e
-}
-
-#==============================================================================
-
-# Prints out a summary of other things running on this node
-# Hopefully this will help me debug why things are crashing all the time
-function print_node_jobs {
-    echo "-------------------------------"
-    hn=${HOSTNAME%.local}
-    echo "$hn   $(date)"
-    squeue -w "$hn" -O "gres,numcpus,partition,username"
-}
-
-#==============================================================================
