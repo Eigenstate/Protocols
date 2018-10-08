@@ -396,8 +396,11 @@ function check_previous {
 
     # Handle special case with Eq_final
     # Eq_unrestrained is after Eq_final
-    if [[ $jobnum == "final" ]]; then
+    if [[ $jobnum == final ]]; then
         next="unrestrained"
+    elif [[ $jobnum == "unrestrained" ]]; then
+        next="0"
+        prefix="Prod"
     else
         next=$(( $((10#$jobnum)) + 1)) # Put it in base 10 and then add 1
     fi
