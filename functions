@@ -36,8 +36,8 @@ function check_output {
 
     # Check for existence of mdout
     if [[ ! -f $mdout ]]; then
-        echo "Mdout not found"
-        error_badrun
+        echo "Mdout $mdout not found"
+        error_orphan
     fi
 
     # Check that next job won't have problems with its output files
@@ -71,19 +71,19 @@ function check_output {
     fi
 
     # Check for errors in previous trajectory
-    if $(grep -q "NaN(s) found in input coordinates" "$1"); then
+    if $(grep -q "NaN(s) found in input coordinates" "$mdout"); then
         echo "NaN in input coordinates"
         error_bad_inputs
     fi
 
     # Check for Nans in mdout
-    if $(grep -q "NaN" "$1"); then
+    if $(grep -q "NaN" "$mdout"); then
         echo "NaN in mdout!"
         error_bad_inputs
     fi
 
     # Check for input errors in mdout
-    if $(grep -q "Input errors occurred" "$1"); then
+    if $(grep -q "Input errors occurred" "$mdout"); then
         echo "Input errors in mdout!"
         error_bad_inputs
     fi
@@ -128,7 +128,7 @@ function check_output {
     fi
 
     # If requested, check mdout represents a complete file
-    if [[ $fail == 1 ]] && ! $(grep -qi "Total wall time" "$1"); then
+    if [[ $fail == 1 ]] && ! $(grep -qi "Total wall time" "$mdout"); then
         echo "Incomplete mdout file"
         error_badrun
     fi
@@ -195,7 +195,7 @@ function delete_previous {
         rm -f "$directory/$prev".{nc,mdout,rst}
 
     else
-        prev="Prod_$(($(echo "$2" | awk -F '_' '{print $NF}')-1))"
+        prev="Prod_$(($(echo "$name" | awk -F '_' '{print $NF}')-1))"
         echo "Deleting previous: $prev"
         rm -f "$directory/$prev".{nc,mdout,rst}
     fi
@@ -211,14 +211,14 @@ function error_hit_quota {
 
 # Orphan files existed from next trajectory and have been deleted
 function error_orphan {
-    sbatch --dependency=singleton "PROTOCOL.sh"
+    sbatch --dependency=singleton --chdir=$directory "$directory/PROTOCOL.sh"
     exit $fail
 }
 
 # Output files that were checked are incomplete
 function error_badrun {
     delete_these
-    sbatch --dependency=singleton "PROTOCOL.sh"
+    sbatch --dependency=singleton --chdir=$directory "$directory/PROTOCOL.sh"
     exit $fail
 }
 
@@ -227,7 +227,7 @@ function error_badrun {
 function error_bad_inputs {
     delete_previous
     delete_these
-    sbatch --dependency=singleton "PROTOCOL.sh"
+    sbatch --dependency=singleton --chdir=$directory "$directory/PROTOCOL.sh"
     exit $fail
 }
 
