@@ -37,7 +37,7 @@ function check_output {
     # Check for existence of mdout
     if [[ ! -f $mdout ]]; then
         echo "Mdout $mdout not found"
-        error_orphan
+        error_badrun
     fi
 
     # Check that next job won't have problems with its output files
