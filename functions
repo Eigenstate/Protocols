@@ -128,7 +128,7 @@ function check_output {
     fi
 
     # If requested, check mdout represents a complete file
-    if [[ $fail == 1 ]] && ! $(grep -qi "Total wall time" "$mdout"); then
+    if [[ $fail == 1 ]] && ! $(grep -qi "Final Performance Info" "$mdout"); then
         echo "Incomplete mdout file"
         error_badrun
     fi
