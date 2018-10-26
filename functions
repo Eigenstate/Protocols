@@ -128,7 +128,9 @@ function check_output {
     fi
 
     # If requested, check mdout represents a complete file
-    if [[ $fail == 1 ]] && ! $(grep -qi "Final Performance Info" "$mdout"); then
+    if [[ $fail == 1 ]] \
+    && ! $(grep -qi "Final Performance Info" "$mdout") \
+    && ! $(grep -qi "FINAL RESULTS" "$mdout"); then
         echo "Incomplete mdout file"
         error_badrun
     fi
