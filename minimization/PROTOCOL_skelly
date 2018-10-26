@@ -56,7 +56,7 @@ if [[ ! -f "min_2.rst" ]]; then
 fi
 
 # Minimize with restraint weight 1 on non solvent non   
-if [[ ! -f "min3.rst" ]]; then
+if [[ ! -f "min_3.rst" ]]; then
     echo "Third minimization...of $SLURM_JOB_NAME"
     check_output "$PWD" "min_2"
     run_md_min "min_3" "min_2.rst" "$inpdir/03_min.mdin"
