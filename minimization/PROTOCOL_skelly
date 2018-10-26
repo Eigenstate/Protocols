@@ -43,23 +43,23 @@ print_node_jobs
 source "$PI_HOME/software/amber_dev/setup_amber.sh"
 
 # Minimize holding the protein really fixed and the lipid mostly fixed
-if [[ ! -f "min1.rst" ]]; then
+if [[ ! -f "min_1.rst" ]]; then
     echo "First minimization...of $SLURM_JOB_NAME"
-    run_md_min "min1" "$inpcrd" "$inpdir/01_min.mdin"
+    run_md_min "min_1" "$inpcrd" "$inpdir/01_min.mdin"
 fi
 
 # Minimize with slightly weaker restraints
-if [[ ! -f "min2.rst" ]]; then
+if [[ ! -f "min_2.rst" ]]; then
     echo "Second minimization...of $SLURM_JOB_NAME"
-    check_output "$PWD" "min1"
-    run_md_min "min2" "min1.rst" "$inpdir/02_min.mdin" 
+    check_output "$PWD" "min_1"
+    run_md_min "min_2" "min_1.rst" "$inpdir/02_min.mdin" 
 fi
 
 # Minimize with restraint weight 1 on non solvent non   
 if [[ ! -f "min3.rst" ]]; then
     echo "Third minimization...of $SLURM_JOB_NAME"
-    check_output "$PWD" "min2"
-    run_md_min "min3" "min2.rst" "$inpdir/03_min.mdin"
+    check_output "$PWD" "min_2"
+    run_md_min "min_3" "min_2.rst" "$inpdir/03_min.mdin"
 fi
 
 echo "Done with $SLURM_JOB_NAME"

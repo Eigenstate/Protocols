@@ -125,7 +125,7 @@ function start_equilibration {
 
     eval \
     sed "-e \"s@(MINNUM)@$minjob@g\" \
-         -e \"s@(RST)@$mindir/min3.rst@g\" \
+         -e \"s@(RST)@$mindir/min_3.rst@g\" \
          -e \"s@(QOS)@$minqos@g\" \
          -e \"s@(PART)@$minpart@g\" \
          -e \"s@(REP)@$r@g\" \
