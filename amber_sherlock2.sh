@@ -8,12 +8,13 @@
 # No effort made for Sherlock 1
 
 module unload icc ifort imkl
-
-module load cuda/8.0.61
 module load devel
 
+# Pinned these versions so openmpi can't pull in CUDA 9 - 23 Oct 2018, RMB
+module load cuda/8.0.61
+module load openmpi/2.1.1
+
 # gcc + openmpi
-module load openmpi
 export MPI_HOME="/share/software/user/open/openmpi/2.1.1/"
 export PATH="$MPI_HOME/bin:$PATH"                        # get mpicc etc
 export CPATH="$MPI_HOME/include:$CPATH"                  # language independent include path
