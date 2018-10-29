@@ -394,7 +394,7 @@ if [[ "$part" == "owners" ]]; then
 fi
 
 # Set the equilibration time depending on the number of GPUs
-if [[ "$ngpus" == "1" ]]; then
+if [[ $ngpus == 1 ]]; then
     eqtime=12
 else
     eqtime=8
@@ -426,8 +426,9 @@ elif [[ $hmr == "2" ]]; then
 fi
 
 # Set timesteps differently for gentle equilibration
-# Still 5 equilibration steps so whatever
+# Also increase the runtime
 if [[ $gentleq == 1 ]]; then
+    eqtime=16
     eqdt=0.002
     heatwrite="ntpr=100, ntwr=10000, ntwx=1000,"
     eqwrite="ntpr=6250, ntwr=62500, ntwx=12500,"
