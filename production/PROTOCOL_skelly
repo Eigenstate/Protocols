@@ -66,7 +66,7 @@ if [[ ! -f "Eq_unrestrained.rst" ]]; then
     run_md "Eq_unrestrained" "(EQDIR)/Eq_final.rst" "$inpdir/Eq_unrestrained.mdin" nochmod
 fi
 
-# Simulate at 310K in the NPT ensemble with 2.0fs timestep
+# Simulate at (TEMPK)K in the NPT ensemble
 # This run will probably run out of walltime.
 if [[ ! -f "Prod_0.rst" ]]; then
     echo "Beginning first unrestrained production run: $SLURM_JOB_NAME"
@@ -103,7 +103,7 @@ fi
 # Now start working on the next trajectory
 last=$((last+1))
 
-# Simulate at 310K in the NPT ensemble with 2.0fs timestep
+# Simulate at (TEMPK)K in the NPT ensemble with 2.0fs timestep
 # This run will probably run out of walltime.
 echo "Beginning run: $SLURM_JOB_NAME trajectory number: $last"
 run_md "Prod_${last}" "$rst" "$inpdir/Prod_(RUNTIME)h.mdin"

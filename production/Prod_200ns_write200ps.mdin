@@ -1,4 +1,4 @@
-Lipid production 310K
+Lipid production (TEMPK)K
  &cntrl
   imin=0,          ! Molecular dynamics
   ntx=5,           ! Positions and velocities read formatted
@@ -10,7 +10,7 @@ Lipid production 310K
   tol=0.0000001,   ! SHAKE tolerance
   ntt=3,           ! Langevin dynamics
   gamma_ln=1.0,    ! Collision frequency for Langevin dyn.
-  temp0=310.0,     ! Simulation temperature (K)
+  temp0=(TEMPK),   ! Simulation temperature (K)
   ig=-1,           ! Random seed for Langevin dynamics
   cut=9.0,         ! Nonbonded cutoff (Angstroms)
   ioutfm=1,        ! Write binary NetCDF trajectory

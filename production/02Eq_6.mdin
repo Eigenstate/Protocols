@@ -1,4 +1,4 @@
-Unrestrained equilibration 310K 5ns
+Unrestrained equilibration (TEMPK)K 5ns
  &cntrl
   imin=0,
   ntx=5,
@@ -10,7 +10,7 @@ Unrestrained equilibration 310K 5ns
   tol=0.0000001,
   ntt=3,
   gamma_ln=1.0,
-  temp0=310.0,
+  temp0=(TEMPK),
   ig=-1,
   cut=9.0,
   ioutfm=1,

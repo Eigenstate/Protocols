@@ -1,4 +1,4 @@
-High restraint equilibration 310K 2ns
+High restraint equilibration (TEMPK)K 2ns
  &cntrl
   imin=0,
   ntx=1,          ! Positions read formatted with no initial velocities
@@ -11,7 +11,7 @@ High restraint equilibration 310K 2ns
   ntt=3,
   gamma_ln=1.0,
   ntr=1,
-  temp0=310.0,
+  temp0=(TEMPK),
   ig=-1,
   cut=9.0,
   ioutfm=1,

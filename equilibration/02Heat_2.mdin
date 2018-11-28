@@ -1,4 +1,4 @@
-Lipid 128 heating 303K
+Lipid 128 heating (TEMPK)K
  &cntrl
   imin=0,
   ntx=5,        ! Positions and velocities read formatted
@@ -30,6 +30,6 @@ Lipid 128 heating 303K
   istep1=0,
   istep2=(NSTEPS),
   value1=100.0,
-  value2=310.0 /
+  value2=(TEMPK) /
  &wt type='END' /
 /

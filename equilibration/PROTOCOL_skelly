@@ -15,7 +15,7 @@
 #=====================================================================
 #                            PROTOCOL(REV)
 #=====================================================================
-# GOAL   : Equilibrate the system at 310K after heating
+# GOAL   : Equilibrate the system at (TEMPK)K after heating
 #
 # INPUTS :
 # OUTPUT : Equilibrated system
@@ -65,7 +65,7 @@ if [[ ! -f "Heat_1.rst" ]]; then
     run_md "Heat_1" "$rst"
 fi
 
-# Heat again from 100 to 310K with restraints 10 on the lipid and protein for
+# Heat again from 100 to (TEMPK)K with restraints 10 on the lipid and protein for
 # 125ps in NTP ensemble, 2.5fs timestep
 if [[ ! -f "Heat_2.rst" ]]; then
     echo "NTP heating...of $SLURM_JOB_NAME"

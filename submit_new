@@ -29,6 +29,7 @@ function usage {
   echo "  -c <inpcrd> = Input coordinates to use, if not default named"
   echo "  -d <directory> = Root directory of simulation. Defaults to \$PWD"
   echo "  --restraints <restraints> = Residues to restrain, comma or - separated"
+  echo "  --temperature <temp> = Production temperature, in K. Defaults to 310"
   echo "  --resubmit to hook into resubmit script"
   echo "  --msm <rep> for MSM mode: no output, specify single replicate number."
   echo "  --gpus <n> for number of GPUs per simulation. Defaults to 1"
@@ -226,6 +227,7 @@ resubmit=0
 msm=0
 ngpus=1
 gentleq=0
+temperature="310.0"
 
 # Parse input arguments
 while [[ "$#" > 0 ]]; do
@@ -265,6 +267,10 @@ while [[ "$#" > 0 ]]; do
     ;;
     "-t"|"--time")
     nsec="$2"
+    shift
+    ;;
+    "--temperature")
+    temperature="$2"
     shift
     ;;
     "--restraints")
@@ -491,7 +497,8 @@ sedargs="-e \"s/(DT)/$dt/g\" \
          -e \"s/(RESTRAINT)/$restraint/g\" \
          -e \"s@(NAM)@$name@g\" \
          -e \"s@(REF)@$inpcrd@g\" \
-         -e \"s@(INPCRD)@$inpcrd@g\"
+         -e \"s@(INPCRD)@$inpcrd@g\" \
+         -e \"s@(TEMPK)@$temperature@g\"
          $resnameargs"
 
 # Create directory structure if nonexistent
