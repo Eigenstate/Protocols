@@ -373,11 +373,12 @@ if [[ $prodonly -eq 1 && $inpcrd == *".rst" ]]; then
 fi
 
 # Set runtime and QOS according to allowed runtime
-if [[ "$qos" == "rondror" || "$qos" == "rondror_high" ]]; then
-    if [[ $SHERLOCK == 2 ]]; then
-        echo "Sherlock 2 only has normal QOS. Setting it for you."
-        qos="normal"
-    fi
+if [[ "$qos" == "rondror" ]]; then
+    part="rondror"
+    qos="normal"
+    runtime=8
+elif [[ "$qos" == "rondror_high" ]]; then
+    qos="high_p"
     part="rondror"
     runtime=8
 elif [[ "$qos" == "owners" ]]; then
