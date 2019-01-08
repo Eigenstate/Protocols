@@ -155,9 +155,16 @@ function start_production {
 
   # If starting production jobs only, verify equilibration completed
   if [[ $prodonly -eq 1 && ! -f $eqdir/Eq_final.rst ]]; then
-      echo "Resubmitting equilibration for replicate $r"
+      echo "  Resubmitting equilibration"
       cd $eqdir
-      depjob=$(sbatch "PROTOCOL.sh" | awk '{print $4}')
+
+      if [[ -f "PROTOCOL.sh" ]]; then
+          depjob=$(sbatch "PROTOCOL.sh" | awk '{print $4}')
+      else
+          echo "  Writing missing protocol file"
+          start_equilibration $r
+          depjob=${eqjob[${#eqjob[@]}-1]}
+      fi
       cd - > /dev/null
   fi
 
