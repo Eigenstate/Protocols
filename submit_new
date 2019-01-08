@@ -136,7 +136,8 @@ function start_equilibration {
         < "$inpdir/equilibration/PROTOCOL_skelly" > "$eqdir/PROTOCOL.sh"
 
     chmod +x -f "$eqdir/PROTOCOL.sh"
-    eqjob+=($(sbatch "PROTOCOL.sh" | awk '{print $4}'))
+    eqid=$(sbatch "PROTOCOL.sh" | awk '{print $4}')
+    eqjob+=($eqid)
     cd - > /dev/null
     return 0
 }
@@ -163,7 +164,7 @@ function start_production {
       else
           echo "  Writing missing protocol file"
           start_equilibration $r
-          depjob=${eqjob[${#eqjob[@]}-1]}
+          depjob=$eqid
       fi
       cd - > /dev/null
   fi
