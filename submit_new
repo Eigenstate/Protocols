@@ -155,7 +155,9 @@ function start_production {
   eqdir="${prodir/production/equilibration}/$r"
 
   # If starting production jobs only, verify equilibration completed
-  if [[ $prodonly -eq 1 && ! -f $eqdir/Eq_final.rst ]]; then
+  # if inpcrd doesn't contain velocity information
+  if [[ $prodonly -eq 1 && $inpcrd != *"rst"* && ! -f $eqdir/Eq_final.rst ]]
+  then
       echo "  Resubmitting equilibration"
       cd $eqdir
 
