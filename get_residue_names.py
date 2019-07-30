@@ -19,19 +19,19 @@ if __name__ == "__main__":
 
     # Get the lipid selection. For AMBER, only the head group can be picked up
     # by this, so use the "same fragment" syntax to get the tails, too.
-    lipids = set(atomsel("same fragment as lipid", mid).get("resname"))
+    lipids = set(atomsel("same fragment as lipid", mid).resname)
     lipcommand = "-e \"s/(LIPID)/(:%s)/g\" " % ("|:".join(lipids))
     result += lipcommand
 
     # Now get all the ions
-    ionids = set(atomsel("ion", mid).get("resname"))
+    ionids = set(atomsel("ion", mid).resname)
     ioncommand = "-e \"s/(ION)/(:%s)/g\" " % ("|:".join(ionids))
     result += ioncommand
 
     # Now the water residue name
     # Do first with residue prefixes, then without, for more clarity
     # in skeleton input files
-    watids = set(atomsel("water", mid).get("resname"))
+    watids = set(atomsel("water", mid).resname)
     if len(watids) > 1:
         raise ValueError("Found more than one water model in use. "
                          "Resames were: '%s'" % ", ".join(watids))
@@ -40,7 +40,7 @@ if __name__ == "__main__":
     result += watcommand
 
     # Finally, the water oxygen atom name, for shake
-    wtoids = set(atomsel("water and element O", mid).get("name"))
+    wtoids = set(atomsel("water and element O", mid).name)
     if len(wtoids) > 1:
         raise ValueError("Found more than one water oxygen name. "
                          "Names were: '%s'" % ", ".join(wtoids))

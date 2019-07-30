@@ -258,7 +258,6 @@ function run_md {
         -r "${1}.rst" -ref "$ref" -x "${1}.nc"
     else
         $MPI_HOME/bin/mpirun -np $SLURM_NTASKS_PER_SOCKET \
-                             --bind-to socket \
                              $AMBERHOME/bin/pmemd.cuda.MPI \
                              -O \
                              -i "$inp" \
@@ -299,7 +298,6 @@ function run_md_cpu {
         -r "${1}.rst" -ref "$ref" -x "${1}.nc"
     else
         $MPI_HOME/bin/mpirun -np $SLURM_NTASKS \
-                             --bind-to socket \
                              $AMBERHOME/bin/pmemd.MPI \
                              -O \
                              -i "$inp" \
@@ -332,7 +330,6 @@ function run_md_min {
     fi
 
     $MPI_HOME/bin/mpirun -np $SLURM_NTASKS \
-                         --bind-to socket \
                          $AMBERHOME/bin/pmemd.MPI \
                          -O \
                          -i "$inp" \
